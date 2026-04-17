@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reset — Cadena de Suministros</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .center { max-width: 500px; margin: 4rem auto; padding: 0 1rem; text-align: center; }
+    .warning-box { background: #FCEBEB; border: 1px solid #F09595; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .warning-title { font-size: 18px; font-weight: 500; color: #A32D2D; margin-bottom: 8px; }
+    .warning-text { font-size: 13px; color: #711111; line-height: 1.6; }
+    .confirm-box { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .btn-reset { width: 100%; height: 48px; background: #A32D2D; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; font-family: inherit; cursor: pointer; margin-top: 1rem; }
+    .btn-reset:hover { background: #791F1F; }
+    .btn-reset:disabled { background: #d3d1c7; cursor: not-allowed; }
+    .progress { margin-top: 1.5rem; }
+    .progress-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1efe8; font-size: 13px; text-align: left; }
+    .progress-item:last-child { border-bottom: none; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #d3d1c7; flex-shrink: 0; }
+    .dot.done { background: #1D9E75; }
+    .dot.active { background: #378ADD; }
+    .dot.error { background: #E24B4A; }
+    .success-box { background: #E1F5EE; border: 1px solid #5DCAA5; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; display: none; }
+    .success-title { font-size: 16px; font-weight: 500; color: #0F6E56; margin-bottom: 6px; }
+    .success-text { font-size: 13px; color: #085041; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="topbar-title">⚠️ Reset — Cadena de Suministros</div>
+    <div class="topbar-sub">Solo para el coordinador</div>
+  </div>
+</div>
+
+<div class="center">
+
+  <div class="warning-box">
+    <div class="warning-title">⚠ Esto borrará todo</div>
+    <div class="warning-text">
+      Se eliminarán todos los movimientos, pedidos y penalizaciones registrados.<br/>
+      Los stocks volverán a los valores iniciales de cada empresa.<br/><br/>
+      <strong>Esta acción no se puede deshacer.</strong>
+    </div>
+  </div>
+
+  <div class="confirm-box">
+    <p style="font-size:13px;color:#5f5e5a;margin-bottom:12px;">Stocks que se restaurarán:</p>
+    <table style="width:100%;font-size:12px;text-align:left;">
+      <thead><tr><th style="padding:4px 8px;color:#888780;">Empresa</th><th style="padding:4px 8px;color:#888780;">Rojo</th><th style="padding:4px 8px;color:#888780;">Azul</th><th style="padding:4px 8px;color:#888780;">Rosado</th><th style="padding:4px 8px;color:#888780;">Blanco</th><th style="padding:4px 8px;color:#888780;">Amarillo</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:4px 8px;font-weight:500">UNILEVER MEX</td><td style="padding:4px 8px">72cj</td><td style="padding:4px 8px">128cj</td><td style="padding:4px 8px">80cj</td><td style="padding:4px 8px">80cj</td><td style="padding:4px 8px">96cj</td></tr>
+        <tr style="background:#f9f8f5"><td style="padding:4px 8px;font-weight:500">CETLOG</td><td style="padding:4px 8px">3cj</td><td style="padding:4px 8px">1cj</td><td style="padding:4px 8px">4cj</td><td style="padding:4px 8px">3cj</td><td style="padding:4px 8px">6cj</td></tr>
+        <tr><td style="padding:4px 8px;font-weight:500">TOTTUS CD</td><td style="padding:4px 8px">5cj</td><td style="padding:4px 8px">1cj</td><td style="padding:4px 8px">3cj</td><td style="padding:4px 8px">4cj</td><td style="padding:4px 8px">3cj</td></tr>
+        <tr style="background:#f9f8f5"><td style="padding:4px 8px;font-weight:500">YICHANG CD</td><td style="padding:4px 8px">2cj</td><td style="padding:4px 8px">1cj</td><td style="padding:4px 8px">2cj</td><td style="padding:4px 8px">2cj</td><td style="padding:4px 8px">5cj</td></tr>
+        <tr><td style="padding:4px 8px;font-weight:500">TOTTUS TIENDA</td><td style="padding:4px 8px">8uds</td><td style="padding:4px 8px">6uds</td><td style="padding:4px 8px">16uds</td><td style="padding:4px 8px">8uds</td><td style="padding:4px 8px">12uds</td></tr>
+      </tbody>
+    </table>
+
+    <button class="btn-reset" id="resetBtn" onclick="confirmarReset()">Resetear simulación</button>
+  </div>
+
+  <div class="progress" id="progressBox" style="display:none;">
+    <div class="confirm-box" style="text-align:left;">
+      <p style="font-size:13px;font-weight:500;margin-bottom:12px;">Reseteando...</p>
+      <div class="progress-item"><div class="dot" id="dot1"></div><span id="step1">Borrando movimientos...</span></div>
+      <div class="progress-item"><div class="dot" id="dot2"></div><span id="step2">Borrando pedidos...</span></div>
+      <div class="progress-item"><div class="dot" id="dot3"></div><span id="step3">Borrando penalizaciones...</span></div>
+      <div class="progress-item"><div class="dot" id="dot4"></div><span id="step4">Restaurando stocks...</span></div>
+    </div>
+  </div>
+
+  <div class="success-box" id="successBox">
+    <div class="success-title">✓ Reset completado</div>
+    <div class="success-text">Todos los datos fueron borrados y los stocks restaurados a valores iniciales. Ya pueden comenzar la simulación.</div>
+    <a href="coordinador.html" style="display:inline-block;margin-top:12px;font-size:13px;color:#0F6E56;">→ Ir al coordinador</a>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
+  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
+  projectId: "cadena-de-suministros-1d554",
+  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
+  messagingSenderId: "154153617557",
+  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
+});
+const db = getFirestore(app);
+
+const INITIAL_STOCKS = {
+  UNILEVER_MEX:  {Rojo:72*8, Azul:128*8, Rosado:80*8, Blanco:80*8, Amarillo:96*8},
+  CETLOG:        {Rojo:24,   Azul:8,     Rosado:32,   Blanco:24,   Amarillo:48},
+  TOTTUS_CD:     {Rojo:40,   Azul:8,     Rosado:24,   Blanco:32,   Amarillo:24},
+  YICHANG_CD:    {Rojo:16,   Azul:8,     Rosado:16,   Blanco:16,   Amarillo:40},
+  TOTTUS_TIENDA: {Rojo:8,    Azul:6,     Rosado:16,   Blanco:8,    Amarillo:12},
+};
+
+async function deleteCollection(colName, dotId, stepId) {
+  document.getElementById(dotId).className = "dot active";
+  const snap = await getDocs(collection(db, colName));
+  const batch = writeBatch(db);
+  snap.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  document.getElementById(dotId).className = "dot done";
+  document.getElementById(stepId).textContent = `✓ ${colName} borrado (${snap.size} registros)`;
+}
+
+window.confirmarReset = async function() {
+  const btn = document.getElementById("resetBtn");
+  btn.disabled = true;
+  btn.textContent = "Reseteando...";
+  document.getElementById("progressBox").style.display = "block";
+
+  try {
+    await deleteCollection("movimientos", "dot1", "step1");
+    await deleteCollection("pedidos", "dot2", "step2");
+    await deleteCollection("penalizaciones", "dot3", "step3");
+
+    document.getElementById("dot4").className = "dot active";
+    for (const [empresa, stock] of Object.entries(INITIAL_STOCKS)) {
+      await setDoc(doc(db, "stocks", empresa), stock);
+    }
+    document.getElementById("dot4").className = "dot done";
+    document.getElementById("step4").textContent = "✓ Stocks restaurados";
+
+    document.getElementById("successBox").style.display = "block";
+    btn.textContent = "✓ Completado";
+  } catch(e) {
+    document.getElementById("dot4").className = "dot error";
+    btn.textContent = "Error — intenta de nuevo";
+    btn.disabled = false;
+    console.error(e);
+  }
+};
+</script>
+</body>
+</html>
