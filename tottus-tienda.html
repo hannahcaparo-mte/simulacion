@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TOTTUS TIENDA — Cadena de Suministros</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .main-with-panel { margin-right: 330px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .tabs { display:flex; gap:4px; margin-bottom:1rem; border-bottom:1px solid #e5e4de; }
+    .tab { padding:8px 16px; font-size:13px; border:none; background:none; color:#888780; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+    .tab.active { color:#1a1a18; border-bottom-color:#1a1a18; font-weight:500; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="topbar-title" style="color:#993556;">🛒 TOTTUS TIENDA</div>
+    <div class="topbar-sub">Retail · Unidades · Límite: 70 uds por producto</div>
+  </div>
+  <div id="connStatus" style="font-size:12px;color:#888780;">Conectando...</div>
+</div>
+
+<div class="main-with-panel">
+<div class="page">
+
+  <p class="section-title">Mi stock (unidades)</p>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="alert-banner" id="alertBanner"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('venta')">Venta a cliente</button>
+    <button class="tab" onclick="switchTab('recepcion')">Recepción de TOTTUS CD</button>
+  </div>
+
+  <!-- TAB: VENTA -->
+  <div class="tab-content active" id="tab-venta">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Registra cuando un cliente compra. Se descuenta de tu stock en unidades.</p>
+      <div class="form-grid">
+        <div class="field"><label>Producto</label>
+          <select id="vtProducto"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+        </div>
+        <div class="field"><label>Unidades vendidas</label>
+          <input type="number" id="vtCantidad" min="1" value="1"/>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn" style="width:100%;background:#FCEBEB;color:#A32D2D;border-color:#F09595" onclick="registrarVenta()">Registrar venta</button>
+        </div>
+      </div>
+      <div class="alert-banner" id="vtAlert"></div>
+    </div>
+  </div>
+
+  <!-- TAB: RECEPCIÓN -->
+  <div class="tab-content" id="tab-recepcion">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando recibes mercadería de TOTTUS CD, regístrala aquí como <strong>Transferencia de entrada</strong>. El pedido también aparecerá automáticamente en el panel lateral.</p>
+      <div class="form-grid">
+        <div class="field"><label>Producto</label>
+          <select id="reProducto"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+        </div>
+        <div class="field"><label>Unidades recibidas</label>
+          <input type="number" id="reCantidad" min="1" value="8"/>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn" style="width:100%;background:#EAF3DE;color:#27500A;border-color:#97C459" onclick="registrarRecepcion()">Registrar transferencia de entrada</button>
+        </div>
+      </div>
+      <div class="alert-banner" id="reAlert"></div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <p class="section-title">Historial de movimientos</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Unidades</th><th>Stock resultante</th></tr></thead>
+      <tbody id="historialBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- PANEL DE TRANSFERENCIAS ENTRANTES -->
+<div class="orders-panel">
+  <p class="section-title">Transferencias de TOTTUS CD</p>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin transferencias.</p></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const COMPANY_ID = "TOTTUS_TIENDA";
+const PRODUCTS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const INITIAL_STOCK = {Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12};
+const LIMIT_UDS = 70;
+
+const app = initializeApp({
+  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
+  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
+  projectId: "cadena-de-suministros-1d554",
+  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
+  messagingSenderId: "154153617557",
+  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
+});
+const db = getFirestore(app);
+let currentStock = {...INITIAL_STOCK};
+let timers = {};
+
+document.getElementById("connStatus").textContent = "✓ Conectado";
+
+async function initStock() {
+  const ref = doc(db,"stocks",COMPANY_ID);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) await setDoc(ref, INITIAL_STOCK);
+  else currentStock = snap.data();
+  renderStock();
+}
+
+onSnapshot(doc(db,"stocks",COMPANY_ID), snap=>{if(snap.exists()){currentStock=snap.data();renderStock();}});
+onSnapshot(query(collection(db,"movimientos"),where("empresa","==",COMPANY_ID),orderBy("timestamp","desc")), snap=>{
+  const rows=[]; snap.forEach(d=>rows.push({id:d.id,...d.data()})); renderHistorial(rows);
+});
+onSnapshot(query(collection(db,"pedidos"),where("destino","==",COMPANY_ID),orderBy("timestamp","desc")), snap=>{
+  const orders=[]; snap.forEach(d=>orders.push({id:d.id,...d.data()})); renderOrders(orders);
+});
+
+function renderStock() {
+  const grid=document.getElementById("stockGrid");
+  let overLimit=[];
+  grid.innerHTML=PRODUCTS.map(p=>{
+    const uds=currentStock[p]||0;
+    const pct=Math.min(100,Math.round((uds/LIMIT_UDS)*100));
+    const isOver=uds>=LIMIT_UDS;
+    if(isOver) overLimit.push(p);
+    const status=uds===0?"danger":isOver?"over-limit":uds/LIMIT_UDS<=0.2?"warning":"ok";
+    const barColor=status==="ok"?"#1D9E75":status==="warning"?"#EF9F27":"#E24B4A";
+    return `<div class="stock-card ${status!=="ok"?status:""}">
+      <div class="product-name">${p}</div>
+      <div class="stock-num ${status==="over-limit"?"danger":status}">${uds}</div>
+      <div class="stock-unit">uds / ${LIMIT_UDS} máx</div>
+      <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>`;
+  }).join("");
+  const banner=document.getElementById("alertBanner");
+  if(overLimit.length){banner.className="alert-banner error show";banner.textContent="⚠ Límite alcanzado: "+overLimit.join(", ")+". No puedes recibir más.";}
+  else banner.className="alert-banner";
+}
+
+function renderHistorial(rows) {
+  const body=document.getElementById("historialBody");
+  if(!rows.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
+  body.innerHTML=rows.map((r,i)=>{
+    const time=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    return `<tr><td style="color:#b4b2a9">${rows.length-i}</td><td style="color:#888780">${time}</td>
+      <td><span class="badge ${r.tipo}">${labelTipo(r.tipo)}</span></td>
+      <td>${r.producto}</td>
+      <td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
+      <td>${r.stockResultante!==undefined?r.stockResultante+" uds":"—"}</td></tr>`;
+  }).join("");
+}
+
+function renderOrders(orders) {
+  const container=document.getElementById("ordersContainer");
+  const active=orders.filter(o=>o.estado!=="completado"&&o.estado!=="rechazado");
+  const done=orders.filter(o=>o.estado==="completado").slice(0,3);
+  const all=[...active,...done];
+  if(!all.length){container.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin transferencias.</p>';return;}
+  container.innerHTML=all.map(o=>{
+    const time=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    if(o.estado==="completado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail">${time} · <span class="badge completado">Recibido</span></div></div>`;
+    if(o.estado==="vencido") return `<div class="order-item vencido"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Vencido</span></div></div>`;
+    if(o.estado==="en-proceso"){
+      if(!timers[o.id]) startTimer(o.id, o.acceptedAt);
+      return `<div class="order-item en-proceso" id="order-${o.id}">
+        <div class="order-title">${o.producto} — ${o.cantidad} uds de TOTTUS CD</div>
+        <div class="order-detail"><span class="badge transf-entrada">Transf. entrada</span></div>
+        <div class="timer" id="timer-${o.id}">3:00</div>
+        <button class="btn success" style="width:100%;margin-top:6px" onclick="recibirTransferencia('${o.id}','${o.producto}',${o.cantidad})">Confirmar recepción ✓</button>
+      </div>`;
+    }
+    return `<div class="order-item pendiente" id="order-${o.id}">
+      <div class="order-title">${o.producto} — ${o.cantidad} uds de TOTTUS CD</div>
+      <div class="order-detail">${time} · <span class="badge transf-entrada">Transf. entrada</span></div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
+        <button class="btn danger" style="flex:1" onclick="rechazar('${o.id}')">Rechazar</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function startTimer(orderId, acceptedAt) {
+  if(timers[orderId]) return;
+  const deadline=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+3*60*1000:Date.now()+3*60*1000;
+  timers[orderId]=setInterval(async()=>{
+    const remaining=deadline-Date.now();
+    const el=document.getElementById("timer-"+orderId);
+    if(!el){clearInterval(timers[orderId]);return;}
+    if(remaining<=0){
+      clearInterval(timers[orderId]);el.textContent="¡TIEMPO!";el.className="timer expired";
+      await updateDoc(doc(db,"pedidos",orderId),{estado:"vencido"});
+      await addDoc(collection(db,"penalizaciones"),{empresa:COMPANY_ID,motivo:"Tiempo vencido",detalle:"Transferencia no confirmada en 3 minutos",timestamp:serverTimestamp()});
+      return;
+    }
+    const m=Math.floor(remaining/60000),s=Math.floor((remaining%60000)/1000);
+    el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(remaining<60000?" warning":"");
+  },500);
+}
+
+window.aceptar = async id => await updateDoc(doc(db,"pedidos",id),{estado:"en-proceso",acceptedAt:serverTimestamp()});
+window.rechazar = async id => await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
+
+window.recibirTransferencia = async function(id, producto, uds) {
+  const newStock={...currentStock};
+  const newVal=(newStock[producto]||0)+uds;
+  if(newVal>LIMIT_UDS){
+    await addDoc(collection(db,"penalizaciones"),{empresa:COMPANY_ID,motivo:"Stock límite excedido",detalle:`${producto} supera ${LIMIT_UDS} uds al recibir transferencia`,timestamp:serverTimestamp()});
+  }
+  newStock[producto]=Math.min(newVal,LIMIT_UDS);
+  await setDoc(doc(db,"stocks",COMPANY_ID),newStock);
+  await addDoc(collection(db,"movimientos"),{empresa:COMPANY_ID,tipo:"transf-entrada",producto,cantidad:uds,unidad:"uds",direccion:"entrada",stockResultante:newStock[producto],notas:"Recibido de TOTTUS CD",timestamp:serverTimestamp()});
+  await updateDoc(doc(db,"pedidos",id),{estado:"completado"});
+  clearInterval(timers[id]);
+};
+
+window.registrarVenta = async function() {
+  const producto=document.getElementById("vtProducto").value;
+  const uds=parseInt(document.getElementById("vtCantidad").value);
+  const alertEl=document.getElementById("vtAlert");
+  if(!uds||uds<1) return;
+  if((currentStock[producto]||0)<uds){showAlert(alertEl,"Stock insuficiente.",true);return;}
+  const newStock={...currentStock};
+  newStock[producto]-=uds;
+  await setDoc(doc(db,"stocks",COMPANY_ID),newStock);
+  await addDoc(collection(db,"movimientos"),{empresa:COMPANY_ID,tipo:"transf-salida",producto,cantidad:uds,unidad:"uds",direccion:"salida",stockResultante:newStock[producto],notas:"Venta a cliente final",timestamp:serverTimestamp()});
+  showAlert(alertEl,`Venta registrada — ${uds} uds de ${producto}.`,false);
+};
+
+window.registrarRecepcion = async function() {
+  const producto=document.getElementById("reProducto").value;
+  const uds=parseInt(document.getElementById("reCantidad").value);
+  const alertEl=document.getElementById("reAlert");
+  if(!uds||uds<1) return;
+  const newStock={...currentStock};
+  const newVal=(newStock[producto]||0)+uds;
+  if(newVal>LIMIT_UDS){
+    showAlert(alertEl,`⚠ Superas el límite de ${LIMIT_UDS} uds para ${producto}. Penalización registrada.`,true);
+    await addDoc(collection(db,"penalizaciones"),{empresa:COMPANY_ID,motivo:"Stock límite excedido",detalle:`${producto} supera ${LIMIT_UDS} uds en recepción manual`,timestamp:serverTimestamp()});
+    return;
+  }
+  newStock[producto]=newVal;
+  await setDoc(doc(db,"stocks",COMPANY_ID),newStock);
+  await addDoc(collection(db,"movimientos"),{empresa:COMPANY_ID,tipo:"transf-entrada",producto,cantidad:uds,unidad:"uds",direccion:"entrada",stockResultante:newStock[producto],notas:"Recepción de TOTTUS CD",timestamp:serverTimestamp()});
+  showAlert(alertEl,`+${uds} uds de ${producto} registradas.`,false);
+};
+
+window.switchTab = function(tab) {
+  document.querySelectorAll(".tab").forEach((t,i)=>{t.classList.toggle("active",["venta","recepcion"][i]===tab);});
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+  document.getElementById("tab-"+tab).classList.add("active");
+};
+
+function labelTipo(t){return{"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"}[t]||t;}
+function showAlert(el,msg,isError){el.textContent=msg;el.className="alert-banner show"+(isError?" error":"");setTimeout(()=>el.className="alert-banner",4000);}
+
+initStock();
+</script>
+</body>
+</html>

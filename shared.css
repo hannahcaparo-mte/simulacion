@@ -1,0 +1,88 @@
+/* shared.css - base styles for all interfaces */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+
+/* Layout */
+.topbar { background: #fff; border-bottom: 1px solid #e5e4de; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.topbar-title { font-size: 15px; font-weight: 500; }
+.topbar-sub { font-size: 12px; color: #888780; }
+.page { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+.section-title { font-size: 11px; font-weight: 500; color: #888780; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+/* Cards */
+.card { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+
+/* Stock grid */
+.stock-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.stock-card { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; padding: 14px 10px; text-align: center; }
+.stock-card.warning { border-color: #BA7517; }
+.stock-card.danger { border-color: #A32D2D; background: #fff5f5; }
+.stock-card.over-limit { border-color: #A32D2D; background: #fff5f5; }
+.product-name { font-size: 11px; color: #888780; margin-bottom: 4px; }
+.stock-num { font-size: 24px; font-weight: 500; line-height: 1; margin-bottom: 2px; }
+.stock-num.ok { color: #0F6E56; }
+.stock-num.warning { color: #BA7517; }
+.stock-num.danger { color: #A32D2D; }
+.stock-unit { font-size: 11px; color: #b4b2a9; margin-bottom: 6px; }
+.bar-wrap { height: 4px; background: #f1efe8; border-radius: 2px; overflow: hidden; }
+.bar { height: 4px; border-radius: 2px; transition: width 0.3s; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 10px; }
+.badge.orden-compra { background: #E6F1FB; color: #185FA5; }
+.badge.orden-pedido { background: #EEEDFE; color: #534AB7; }
+.badge.transf-salida { background: #FAEEDA; color: #633806; }
+.badge.transf-entrada { background: #EAF3DE; color: #3B6D11; }
+.badge.pendiente { background: #FAEEDA; color: #633806; }
+.badge.en-proceso { background: #E6F1FB; color: #185FA5; }
+.badge.completado { background: #EAF3DE; color: #3B6D11; }
+.badge.vencido { background: #FCEBEB; color: #A32D2D; }
+.badge.penalizacion { background: #FCEBEB; color: #A32D2D; }
+
+/* Forms */
+.field label { font-size: 13px; color: #5f5e5a; display: block; margin-bottom: 6px; }
+select, input[type="number"], input[type="text"] { width: 100%; height: 38px; border: 1px solid #d3d1c7; border-radius: 8px; padding: 0 10px; font-size: 13px; font-family: inherit; color: #1a1a18; background: #fff; outline: none; }
+select:focus, input:focus { border-color: #888780; box-shadow: 0 0 0 2px rgba(136,135,128,0.15); }
+button { font-family: inherit; cursor: pointer; }
+.btn { height: 38px; border: 1px solid #d3d1c7; background: #f1efe8; border-radius: 8px; font-size: 13px; padding: 0 16px; color: #1a1a18; font-weight: 500; transition: background 0.15s; }
+.btn:hover { background: #d3d1c7; }
+.btn.primary { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+.btn.primary:hover { background: #333; }
+.btn.danger { background: #FCEBEB; color: #A32D2D; border-color: #A32D2D; }
+.btn.success { background: #E1F5EE; color: #0F6E56; border-color: #0F6E56; }
+
+/* Alert banner */
+.alert-banner { display: none; background: #FAEEDA; border: 1px solid #EF9F27; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #633806; margin-bottom: 1rem; }
+.alert-banner.error { background: #FCEBEB; border-color: #E24B4A; color: #A32D2D; }
+.alert-banner.show { display: block; }
+
+/* Table */
+.table-wrap { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: #f9f8f5; }
+th { font-size: 11px; font-weight: 500; color: #888780; text-align: left; padding: 10px 14px; border-bottom: 1px solid #e5e4de; }
+td { padding: 9px 14px; border-bottom: 1px solid #f1efe8; color: #1a1a18; vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #fafaf8; }
+
+/* Orders panel */
+.orders-panel { position: fixed; right: 0; top: 57px; width: 320px; height: calc(100vh - 57px); background: #fff; border-left: 1px solid #e5e4de; overflow-y: auto; padding: 1rem; z-index: 90; }
+.order-item { border: 1px solid #e5e4de; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.order-item.pendiente { border-left: 3px solid #EF9F27; }
+.order-item.en-proceso { border-left: 3px solid #378ADD; }
+.order-item.completado { border-left: 3px solid #1D9E75; opacity: 0.6; }
+.order-item.vencido { border-left: 3px solid #E24B4A; opacity: 0.7; }
+.order-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.order-detail { font-size: 12px; color: #888780; margin-bottom: 8px; line-height: 1.5; }
+.timer { font-size: 18px; font-weight: 500; color: #185FA5; margin: 6px 0; }
+.timer.warning { color: #BA7517; }
+.timer.expired { color: #A32D2D; }
+
+/* Penalties */
+.penalty-row { background: #fff5f5; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stock-grid { grid-template-columns: repeat(3, 1fr); }
+  .orders-panel { display: none; }
+}

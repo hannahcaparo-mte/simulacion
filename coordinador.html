@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coordinador — Cadena de Suministros</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .companies-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+    .company-card { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; padding: 14px; }
+    .company-name { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+    .mini-stock { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mini-pill { font-size: 11px; background: #f1efe8; border-radius: 6px; padding: 3px 7px; color: #5f5e5a; }
+    .pen-count { font-size: 20px; font-weight: 500; color: #A32D2D; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 1rem; border-bottom: 1px solid #e5e4de; padding-bottom: 0; }
+    .tab { padding: 8px 16px; font-size: 13px; border: none; background: none; color: #888780; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab.active { color: #1a1a18; border-bottom-color: #1a1a18; font-weight: 500; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .pen-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .pen-card { background: #fff; border: 1px solid #e5e4de; border-radius: 10px; padding: 12px; text-align: center; }
+    .pen-name { font-size: 11px; color: #888780; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🎯 Coordinador — Interfaz Principal</div>
+    <div class="topbar-sub">Simulación cadena de suministros</div>
+  </div>
+  <div id="connStatus" style="font-size:12px;color:#888780;">Conectando...</div>
+</div>
+
+<div class="page">
+
+  <!-- PENALIZACIONES -->
+  <p class="section-title">Penalizaciones por empresa</p>
+  <div class="pen-grid" id="penGrid"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('stocks')">Stocks en tiempo real</button>
+    <button class="tab" onclick="switchTab('pedidos')">Enviar pedido</button>
+    <button class="tab" onclick="switchTab('historial')">Historial global</button>
+    <button class="tab" onclick="switchTab('penhistorial')">Historial penalizaciones</button>
+  </div>
+
+  <!-- TAB: STOCKS -->
+  <div class="tab-content active" id="tab-stocks">
+    <div class="companies-grid" id="companiesGrid"></div>
+  </div>
+
+  <!-- TAB: ENVIAR PEDIDO -->
+  <div class="tab-content" id="tab-pedidos">
+    <div class="card">
+      <p style="font-size:13px;color:#5f5e5a;margin-bottom:1rem;">Envía un pedido a cualquier empresa. El pedido aparecerá en su pantalla y deberán aceptarlo y despacharlo en 3 minutos.</p>
+      <div class="form-grid-4">
+        <div class="field">
+          <label>Empresa destino</label>
+          <select id="pedidoDestino">
+            <option value="UNILEVER_MEX">UNILEVER MEX</option>
+            <option value="UNILEVER_PERU">UNILEVER PERÚ</option>
+            <option value="CETLOG">CETLOG</option>
+            <option value="TOTTUS_CD">TOTTUS CD</option>
+            <option value="YICHANG_CD">YICHANG CD</option>
+            <option value="TOTTUS_TIENDA">TOTTUS TIENDA</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tipo de transacción</label>
+          <select id="pedidoTipo">
+            <option value="orden-compra">Orden de compra</option>
+            <option value="orden-pedido">Orden de pedido</option>
+            <option value="transf-salida">Transferencia de salida</option>
+            <option value="transf-entrada">Transferencia de entrada</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Producto</label>
+          <select id="pedidoProducto">
+            <option value="Rojo">Rojo</option>
+            <option value="Azul">Azul</option>
+            <option value="Rosado">Rosado</option>
+            <option value="Blanco">Blanco</option>
+            <option value="Amarillo">Amarillo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="number" id="pedidoCantidad" min="1" value="1" placeholder="Ej: 2 (cajas o uds)"/>
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="field">
+          <label>Origen / De parte de</label>
+          <input type="text" id="pedidoOrigen" placeholder="Ej: COORDINADOR"/>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <input type="text" id="pedidoNotas" placeholder="Instrucciones adicionales"/>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn primary" style="width:100%" onclick="enviarPedido()">Enviar pedido</button>
+        </div>
+      </div>
+      <div class="alert-banner" id="pedidoAlert"></div>
+    </div>
+  </div>
+
+  <!-- TAB: HISTORIAL GLOBAL -->
+  <div class="tab-content" id="tab-historial">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Empresa</th>
+            <th>Tipo</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Stock resultante</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody id="historialBody">
+          <tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos aún.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: HISTORIAL PENALIZACIONES -->
+  <div class="tab-content" id="tab-penhistorial">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Empresa</th>
+            <th>Motivo</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="penHistorialBody">
+          <tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones aún.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
+  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
+  projectId: "cadena-de-suministros-1d554",
+  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
+  messagingSenderId: "154153617557",
+  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const COMPANIES = {
+  UNILEVER_MEX:   { label: "UNILEVER MEX",   unit: "cajas", limit: null, products: {Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96} },
+  UNILEVER_PERU:  { label: "UNILEVER PERÚ",  unit: null,    limit: null, products: null },
+  CETLOG:         { label: "CETLOG",          unit: "cajas", limit: 23,   products: {Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48} },
+  TOTTUS_CD:      { label: "TOTTUS CD",       unit: "cajas", limit: 23,   products: {Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24} },
+  YICHANG_CD:     { label: "YICHANG CD",      unit: "cajas", limit: 15,   products: {Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40} },
+  TOTTUS_TIENDA:  { label: "TOTTUS TIENDA",   unit: "uds",   limit: 70,   products: {Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12} },
+};
+
+const PRODUCTS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+let stockData = {};
+let penalties = {};
+
+document.getElementById("connStatus").textContent = "✓ Conectado";
+
+// Listen stocks
+onSnapshot(collection(db, "stocks"), snap => {
+  snap.forEach(doc => { stockData[doc.id] = doc.data(); });
+  renderStocks();
+});
+
+// Listen movements
+onSnapshot(query(collection(db, "movimientos"), orderBy("timestamp","desc")), snap => {
+  const rows = [];
+  snap.forEach(doc => rows.push({id: doc.id, ...doc.data()}));
+  renderHistorial(rows);
+});
+
+// Listen penalties
+onSnapshot(query(collection(db, "penalizaciones"), orderBy("timestamp","desc")), snap => {
+  penalties = {};
+  const rows = [];
+  snap.forEach(doc => {
+    const d = doc.data();
+    rows.push(d);
+    penalties[d.empresa] = (penalties[d.empresa] || 0) + 1;
+  });
+  renderPenGrid();
+  renderPenHistorial(rows);
+});
+
+function renderStocks() {
+  const grid = document.getElementById("companiesGrid");
+  grid.innerHTML = Object.entries(COMPANIES).map(([key, co]) => {
+    if (!co.products) return `<div class="company-card"><div class="company-name">${co.label}</div><div style="font-size:12px;color:#b4b2a9;">Sin stock propio</div></div>`;
+    const s = stockData[key] || co.products;
+    const pills = PRODUCTS.map(p => {
+      const val = s[p] || 0;
+      const display = co.unit === "cajas" ? `${Math.floor(val/8)} cj` : `${val} uds`;
+      return `<span class="mini-pill">${p}: ${display}</span>`;
+    }).join("");
+    return `<div class="company-card">
+      <div class="company-name">${co.label} <span style="font-size:11px;color:#b4b2a9;">(${co.unit || "—"})</span></div>
+      <div class="mini-stock">${pills}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderPenGrid() {
+  const compList = Object.entries(COMPANIES);
+  document.getElementById("penGrid").innerHTML = compList.map(([key, co]) => {
+    const count = penalties[key] || 0;
+    return `<div class="pen-card">
+      <div class="pen-name">${co.label}</div>
+      <div class="pen-count">${count}</div>
+      <div style="font-size:11px;color:#b4b2a9;">penalizaciones</div>
+    </div>`;
+  }).join("");
+}
+
+function renderHistorial(rows) {
+  const body = document.getElementById("historialBody");
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos aún.</td></tr>'; return; }
+  body.innerHTML = rows.map(r => {
+    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    const co = COMPANIES[r.empresa];
+    const tipoBadge = `<span class="badge ${r.tipo}">${labelTipo(r.tipo)}</span>`;
+    return `<tr>
+      <td style="color:#888780">${time}</td>
+      <td>${co ? co.label : r.empresa}</td>
+      <td>${tipoBadge}</td>
+      <td>${r.producto || "—"}</td>
+      <td style="font-weight:500">${r.cantidad !== undefined ? (r.direccion === "salida" ? "-" : "+") + r.cantidad : "—"}</td>
+      <td>${r.stockResultante !== undefined ? r.stockResultante : "—"}</td>
+      <td style="color:#888780;font-size:12px">${r.notas || ""}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderPenHistorial(rows) {
+  const body = document.getElementById("penHistorialBody");
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones aún.</td></tr>'; return; }
+  body.innerHTML = rows.map(r => {
+    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    const co = COMPANIES[r.empresa];
+    return `<tr class="penalty-row">
+      <td style="color:#888780">${time}</td>
+      <td>${co ? co.label : r.empresa}</td>
+      <td><span class="badge penalizacion">${r.motivo}</span></td>
+      <td style="font-size:12px;color:#5f5e5a">${r.detalle || ""}</td>
+    </tr>`;
+  }).join("");
+}
+
+window.enviarPedido = async function() {
+  const destino = document.getElementById("pedidoDestino").value;
+  const tipo = document.getElementById("pedidoTipo").value;
+  const producto = document.getElementById("pedidoProducto").value;
+  const cantidad = parseInt(document.getElementById("pedidoCantidad").value);
+  const origen = document.getElementById("pedidoOrigen").value || "COORDINADOR";
+  const notas = document.getElementById("pedidoNotas").value;
+  const alert = document.getElementById("pedidoAlert");
+
+  if (!cantidad || cantidad < 1) { showAlert(alert, "Ingresa una cantidad válida.", true); return; }
+
+  await addDoc(collection(db, "pedidos"), {
+    destino, tipo, producto, cantidad, origen, notas,
+    estado: "pendiente",
+    timestamp: serverTimestamp()
+  });
+
+  showAlert(alert, `Pedido enviado a ${COMPANIES[destino]?.label}. Esperando aceptación.`, false);
+  document.getElementById("pedidoCantidad").value = 1;
+  document.getElementById("pedidoNotas").value = "";
+  document.getElementById("pedidoOrigen").value = "";
+};
+
+window.switchTab = function(tab) {
+  document.querySelectorAll(".tab").forEach((t,i) => {
+    const tabs = ["stocks","pedidos","historial","penhistorial"];
+    t.classList.toggle("active", tabs[i] === tab);
+  });
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.getElementById("tab-"+tab).classList.add("active");
+};
+
+function labelTipo(t) {
+  return { "orden-compra":"Orden de compra","orden-pedido":"Orden de pedido","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada" }[t] || t;
+}
+
+function showAlert(el, msg, isError) {
+  el.textContent = msg;
+  el.className = "alert-banner show" + (isError ? " error" : "");
+  setTimeout(() => el.className = "alert-banner", 4000);
+}
+
+renderStocks();
+renderPenGrid();
+</script>
+</body>
+</html>

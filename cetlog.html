@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CETLOG — Cadena de Suministros</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .main-with-panel { margin-right: 330px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="topbar-title" style="color:#534AB7;">📦 CETLOG</div>
+    <div class="topbar-sub">Almacén de UNILEVER PERÚ · Límite: 184 uds (23 cj) por producto</div>
+  </div>
+  <div id="connStatus" style="font-size:12px;color:#888780;">Conectando...</div>
+</div>
+
+<div class="main-with-panel">
+<div class="page">
+
+  <p class="section-title">Mi stock (cajas)</p>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="alert-banner" id="alertBanner"></div>
+
+  <!-- REGISTRO MANUAL -->
+  <p class="section-title">Registrar movimiento manual</p>
+  <div class="card">
+    <div class="form-grid">
+      <div class="field">
+        <label>Tipo</label>
+        <select id="mvTipo">
+          <option value="orden-pedido">Orden de pedido (despacho)</option>
+          <option value="orden-compra">Orden de compra (recepción)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Producto</label>
+        <select id="mvProducto"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+      </div>
+      <div class="field">
+        <label>Cajas</label>
+        <input type="number" id="mvCantidad" min="1" value="1"/>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Dirección</label>
+        <select id="mvDireccion">
+          <option value="salida">Salida (despacho)</option>
+          <option value="entrada">Entrada (recepción)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Notas</label>
+        <input type="text" id="mvNotas" placeholder="Ej: Para TOTTUS CD"/>
+      </div>
+      <div class="field" style="display:flex;align-items:flex-end;">
+        <button class="btn primary" style="width:100%" onclick="registrarMovimiento()">Registrar</button>
+      </div>
+    </div>
+    <div class="alert-banner" id="mvAlert"></div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <p class="section-title">Historial de movimientos</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cajas</th><th>Stock resultante</th><th>Notas</th></tr></thead>
+      <tbody id="historialBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- PANEL DE PEDIDOS -->
+<div class="orders-panel">
+  <p class="section-title">Órdenes de pedido recibidas</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:12px;">Solo de UNILEVER PERÚ</p>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos.</p></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const COMPANY_ID = "CETLOG";
+const PRODUCTS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const INITIAL_STOCK = {Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48}; // in units
+const LIMIT_UDS = 184;
+
+const app = initializeApp({
+  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
+  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
+  projectId: "cadena-de-suministros-1d554",
+  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
+  messagingSenderId: "154153617557",
+  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
+});
+const db = getFirestore(app);
+
+let currentStock = {...INITIAL_STOCK};
+let timers = {};
+
+document.getElementById("connStatus").textContent = "✓ Conectado";
+
+async function initStock() {
+  const ref = doc(db,"stocks",COMPANY_ID);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) await setDoc(ref, INITIAL_STOCK);
+  else currentStock = snap.data();
+  renderStock();
+}
+
+onSnapshot(doc(db,"stocks",COMPANY_ID), snap => {
+  if (snap.exists()) { currentStock = snap.data(); renderStock(); }
+});
+
+onSnapshot(query(collection(db,"movimientos"), where("empresa","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
+  const rows = [];
+  snap.forEach(d => rows.push({id:d.id,...d.data()}));
+  renderHistorial(rows);
+});
+
+onSnapshot(query(collection(db,"pedidos"), where("destino","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
+  const orders = [];
+  snap.forEach(d => orders.push({id:d.id,...d.data()}));
+  renderOrders(orders);
+});
+
+function renderStock() {
+  const grid = document.getElementById("stockGrid");
+  let hasAlert = [];
+  grid.innerHTML = PRODUCTS.map(p => {
+    const uds = currentStock[p] || 0;
+    const cajas = Math.floor(uds / 8);
+    const pct = Math.min(100, Math.round((uds / LIMIT_UDS) * 100));
+    const isOverLimit = uds >= LIMIT_UDS;
+    const status = uds === 0 ? "danger" : isOverLimit ? "over-limit" : uds / LIMIT_UDS <= 0.2 ? "warning" : "ok";
+    if (isOverLimit) hasAlert.push(p);
+    const barColor = status === "ok" ? "#1D9E75" : status === "warning" ? "#EF9F27" : "#E24B4A";
+    return `<div class="stock-card ${status !== "ok" ? status : ""}">
+      <div class="product-name">${p}</div>
+      <div class="stock-num ${status === "over-limit" ? "danger" : status}">${cajas}</div>
+      <div class="stock-unit">cj / ${Math.floor(LIMIT_UDS/8)} máx</div>
+      <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${barColor}"></div></div>
+    </div>`;
+  }).join("");
+
+  const banner = document.getElementById("alertBanner");
+  if (hasAlert.length) {
+    banner.className = "alert-banner error show";
+    banner.textContent = "⚠ Stock límite alcanzado: " + hasAlert.join(", ") + ". No se puede recibir más.";
+  } else banner.className = "alert-banner";
+}
+
+function renderHistorial(rows) {
+  const body = document.getElementById("historialBody");
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
+  body.innerHTML = rows.map((r,i) => {
+    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    return `<tr>
+      <td style="color:#b4b2a9">${rows.length-i}</td>
+      <td style="color:#888780">${time}</td>
+      <td><span class="badge ${r.tipo}">${labelTipo(r.tipo)}</span></td>
+      <td>${r.producto}</td>
+      <td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} cj</td>
+      <td>${r.stockResultante !== undefined ? Math.floor(r.stockResultante/8)+" cj" : "—"}</td>
+      <td style="font-size:12px;color:#888780">${r.notas||""}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderOrders(orders) {
+  const container = document.getElementById("ordersContainer");
+  const active = orders.filter(o => o.estado !== "completado" && o.estado !== "rechazado");
+  const done = orders.filter(o => o.estado === "completado").slice(0,3);
+  const all = [...active, ...done];
+  if (!all.length) { container.innerHTML = '<p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos.</p>'; return; }
+  container.innerHTML = all.map(o => {
+    const time = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    const destLabel = {TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.destinoFinal] || o.destinoFinal || "—";
+    if (o.estado === "completado") return `<div class="order-item completado">
+      <div class="order-title">${o.producto} — ${o.cantidad} cj → ${destLabel}</div>
+      <div class="order-detail">${time} · <span class="badge completado">Completado</span></div>
+    </div>`;
+    if (o.estado === "vencido") return `<div class="order-item vencido">
+      <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
+      <div class="order-detail">${time} · <span class="badge vencido">Tiempo vencido</span></div>
+    </div>`;
+    if (o.estado === "en-proceso") {
+      if (!timers[o.id]) startTimer(o.id, o.acceptedAt);
+      return `<div class="order-item en-proceso" id="order-${o.id}">
+        <div class="order-title">${o.producto} — ${o.cantidad} cj → ${destLabel}</div>
+        <div class="order-detail">De: UNILEVER PERÚ · <span class="badge orden-pedido">Orden de pedido</span></div>
+        <div class="timer" id="timer-${o.id}">3:00</div>
+        <button class="btn success" style="width:100%;margin-top:6px" onclick="despachar('${o.id}','${o.producto}',${o.cantidad},'${o.destinoFinal||""}')">Despachar ✓</button>
+      </div>`;
+    }
+    return `<div class="order-item pendiente" id="order-${o.id}">
+      <div class="order-title">${o.producto} — ${o.cantidad} cj → ${destLabel}</div>
+      <div class="order-detail">De: UNILEVER PERÚ · ${time}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
+        <button class="btn danger" style="flex:1" onclick="rechazar('${o.id}')">Rechazar</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function startTimer(orderId, acceptedAt) {
+  if (timers[orderId]) return;
+  const deadline = acceptedAt ? (acceptedAt.toDate ? acceptedAt.toDate().getTime() : acceptedAt) + 3*60*1000 : Date.now() + 3*60*1000;
+  timers[orderId] = setInterval(async () => {
+    const remaining = deadline - Date.now();
+    const el = document.getElementById("timer-"+orderId);
+    if (!el) { clearInterval(timers[orderId]); return; }
+    if (remaining <= 0) {
+      clearInterval(timers[orderId]);
+      el.textContent = "¡TIEMPO!"; el.className = "timer expired";
+      await updateDoc(doc(db,"pedidos",orderId), {estado:"vencido"});
+      await addDoc(collection(db,"penalizaciones"), {
+        empresa: COMPANY_ID, motivo: "Tiempo vencido",
+        detalle: "Orden de pedido no despachada en 3 minutos",
+        timestamp: serverTimestamp()
+      });
+      return;
+    }
+    const m = Math.floor(remaining/60000);
+    const s = Math.floor((remaining%60000)/1000);
+    el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+    el.className = "timer" + (remaining < 60000 ? " warning" : "");
+  }, 500);
+}
+
+window.aceptar = async id => await updateDoc(doc(db,"pedidos",id), {estado:"en-proceso", acceptedAt: serverTimestamp()});
+window.rechazar = async id => await updateDoc(doc(db,"pedidos",id), {estado:"rechazado"});
+
+window.despachar = async function(id, producto, cajas, destinoFinal) {
+  const uds = cajas * 8;
+  if ((currentStock[producto]||0) < uds) { alert("Stock insuficiente."); return; }
+
+  const newStock = {...currentStock};
+  newStock[producto] -= uds;
+  await setDoc(doc(db,"stocks",COMPANY_ID), newStock);
+
+  // Add to destination stock if applicable
+  if (destinoFinal) {
+    const destRef = doc(db,"stocks",destinoFinal);
+    const destSnap = await getDoc(destRef);
+    const destStock = destSnap.exists() ? destSnap.data() : {};
+    const DEST_LIMITS = {TOTTUS_CD:184, YICHANG_CD:120};
+    const destLimit = DEST_LIMITS[destinoFinal] || 999;
+    const newVal = (destStock[producto]||0) + uds;
+    if (newVal > destLimit) {
+      await addDoc(collection(db,"penalizaciones"), {
+        empresa: destinoFinal, motivo: "Stock límite excedido",
+        detalle: `${producto} supera ${destLimit} uds al recibir despacho de CETLOG`,
+        timestamp: serverTimestamp()
+      });
+    }
+    destStock[producto] = Math.min(newVal, destLimit);
+    await setDoc(destRef, destStock);
+  }
+
+  await addDoc(collection(db,"movimientos"), {
+    empresa: COMPANY_ID, tipo: "orden-pedido", producto,
+    cantidad: cajas, unidad: "cj", direccion: "salida",
+    stockResultante: newStock[producto],
+    notas: destinoFinal ? `Despachado a ${destinoFinal}` : "",
+    timestamp: serverTimestamp()
+  });
+
+  await updateDoc(doc(db,"pedidos",id), {estado:"completado"});
+  clearInterval(timers[id]);
+};
+
+window.registrarMovimiento = async function() {
+  const tipo = document.getElementById("mvTipo").value;
+  const producto = document.getElementById("mvProducto").value;
+  const cajas = parseInt(document.getElementById("mvCantidad").value);
+  const direccion = document.getElementById("mvDireccion").value;
+  const notas = document.getElementById("mvNotas").value;
+  const alertEl = document.getElementById("mvAlert");
+  if (!cajas || cajas < 1) return;
+  const uds = cajas * 8;
+  const newStock = {...currentStock};
+
+  if (direccion === "salida") {
+    if ((newStock[producto]||0) < uds) { showAlert(alertEl,"Stock insuficiente.",true); return; }
+    newStock[producto] -= uds;
+  } else {
+    if ((newStock[producto]||0) + uds > LIMIT_UDS) {
+      showAlert(alertEl, `⚠ Se superaría el límite de ${Math.floor(LIMIT_UDS/8)} cj para ${producto}.`, true);
+      await addDoc(collection(db,"penalizaciones"), {
+        empresa: COMPANY_ID, motivo: "Stock límite excedido",
+        detalle: `${producto} superaría ${Math.floor(LIMIT_UDS/8)} cj al registrar entrada manual`,
+        timestamp: serverTimestamp()
+      });
+      return;
+    }
+    newStock[producto] += uds;
+  }
+
+  await setDoc(doc(db,"stocks",COMPANY_ID), newStock);
+  await addDoc(collection(db,"movimientos"), {
+    empresa: COMPANY_ID, tipo, producto, cantidad: cajas,
+    unidad: "cj", direccion, stockResultante: newStock[producto],
+    notas, timestamp: serverTimestamp()
+  });
+  showAlert(alertEl, `${direccion === "salida" ? "-" : "+"}${cajas} cj de ${producto} registrado.`, false);
+};
+
+function labelTipo(t) { return {"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"}[t]||t; }
+function showAlert(el, msg, isError) {
+  el.textContent = msg;
+  el.className = "alert-banner show" + (isError ? " error" : "");
+  setTimeout(() => el.className = "alert-banner", 4000);
+}
+
+initStock();
+</script>
+</body>
+</html>

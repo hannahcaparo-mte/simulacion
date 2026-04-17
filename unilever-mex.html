@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UNILEVER MEX — Cadena de Suministros</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .main-with-panel { margin-right: 330px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .timer { font-size: 20px; font-weight: 500; color: #185FA5; }
+    .timer.warning { color: #BA7517; }
+    .timer.expired { color: #A32D2D; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="topbar-title" style="color:#185FA5;">🏭 UNILEVER MEX</div>
+    <div class="topbar-sub">Fabricante — Stock ilimitado · Despacha a CETLOG</div>
+  </div>
+  <div id="connStatus" style="font-size:12px;color:#888780;">Conectando...</div>
+</div>
+
+<div class="main-with-panel">
+<div class="page">
+
+  <p class="section-title">Mi stock (unidades)</p>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="alert-banner" id="alertBanner"></div>
+
+  <!-- REGISTRO DE MOVIMIENTO (solo ENTRADA de producción) -->
+  <p class="section-title">Registrar producción (entrada)</p>
+  <div class="card">
+    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Registra cuando produces y agregas stock. Retiras solo al despachar pedidos.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label>Producto</label>
+        <select id="mvProducto">
+          <option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cajas a producir</label>
+        <input type="number" id="mvCantidad" min="1" value="1"/>
+      </div>
+      <div class="field" style="display:flex;align-items:flex-end;">
+        <button class="btn primary" style="width:100%" onclick="registrarProduccion()">Registrar producción</button>
+      </div>
+    </div>
+    <div class="alert-banner" id="mvAlert"></div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <p class="section-title">Historial de movimientos</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Stock resultante</th></tr></thead>
+      <tbody id="historialBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- PANEL DE PEDIDOS -->
+<div class="orders-panel">
+  <p class="section-title">Órdenes de compra recibidas</p>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos pendientes.</p></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const COMPANY_ID = "UNILEVER_MEX";
+const COMPANY_LABEL = "UNILEVER MEX";
+const UNIT = "cajas"; // stored in units, displayed as cajas
+const STOCK_LIMIT = null; // infinito
+const PRODUCTS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const INITIAL_STOCK = {Rojo:72*8, Azul:128*8, Rosado:80*8, Blanco:80*8, Amarillo:96*8}; // stored as units
+
+const app = initializeApp({
+  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
+  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
+  projectId: "cadena-de-suministros-1d554",
+  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
+  messagingSenderId: "154153617557",
+  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
+});
+const db = getFirestore(app);
+
+let currentStock = {...INITIAL_STOCK};
+let moveCount = 0;
+let timers = {};
+
+document.getElementById("connStatus").textContent = "✓ Conectado";
+
+// Init stock doc
+async function initStock() {
+  const ref = doc(db, "stocks", COMPANY_ID);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) await setDoc(ref, INITIAL_STOCK);
+  else currentStock = snap.data();
+  renderStock();
+}
+
+// Listen stock
+onSnapshot(doc(db, "stocks", COMPANY_ID), snap => {
+  if (snap.exists()) { currentStock = snap.data(); renderStock(); }
+});
+
+// Listen movements
+onSnapshot(query(collection(db, "movimientos"), where("empresa","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
+  moveCount = snap.size;
+  const rows = [];
+  snap.forEach(d => rows.push({id:d.id,...d.data()}));
+  renderHistorial(rows);
+});
+
+// Listen orders for this company
+onSnapshot(query(collection(db, "pedidos"), where("destino","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
+  const orders = [];
+  snap.forEach(d => orders.push({id:d.id,...d.data()}));
+  renderOrders(orders);
+});
+
+function renderStock() {
+  const grid = document.getElementById("stockGrid");
+  grid.innerHTML = PRODUCTS.map(p => {
+    const uds = currentStock[p] || 0;
+    const cajas = Math.floor(uds / 8);
+    return `<div class="stock-card ok">
+      <div class="product-name">${p}</div>
+      <div class="stock-num ok">${cajas}</div>
+      <div class="stock-unit">cajas (${uds} uds)</div>
+      <div class="bar-wrap"><div class="bar" style="width:100%;background:#1D9E75"></div></div>
+    </div>`;
+  }).join("");
+}
+
+function renderHistorial(rows) {
+  const body = document.getElementById("historialBody");
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
+  body.innerHTML = rows.map((r,i) => {
+    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    return `<tr>
+      <td style="color:#b4b2a9">${rows.length - i}</td>
+      <td style="color:#888780">${time}</td>
+      <td><span class="badge ${r.tipo}">${labelTipo(r.tipo)}</span></td>
+      <td>${r.producto}</td>
+      <td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} ${r.unidad||"cj"}</td>
+      <td>${r.stockResultante !== undefined ? Math.floor(r.stockResultante/8)+" cj" : "—"}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderOrders(orders) {
+  const container = document.getElementById("ordersContainer");
+  const active = orders.filter(o => o.estado !== "completado" && o.estado !== "rechazado");
+  const done = orders.filter(o => o.estado === "completado").slice(0,5);
+  const all = [...active, ...done];
+  if (!all.length) { container.innerHTML = '<p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos.</p>'; return; }
+  container.innerHTML = all.map(o => {
+    const time = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
+    if (o.estado === "completado") {
+      return `<div class="order-item completado">
+        <div class="order-title">${o.producto} — ${o.cantidad} ${o.tipo==="orden-compra"?"cj":"uds"}</div>
+        <div class="order-detail">De: ${o.origen} · ${time}<br><span class="badge completado">Completado</span></div>
+      </div>`;
+    }
+    if (o.estado === "vencido") {
+      return `<div class="order-item vencido">
+        <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
+        <div class="order-detail">De: ${o.origen} · ${time}<br><span class="badge vencido">Tiempo vencido</span></div>
+      </div>`;
+    }
+    if (o.estado === "en-proceso") {
+      if (!timers[o.id]) startTimer(o.id, o.acceptedAt);
+      return `<div class="order-item en-proceso" id="order-${o.id}">
+        <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
+        <div class="order-detail">De: ${o.origen} · <span class="badge orden-compra">Orden de compra</span></div>
+        <div class="timer" id="timer-${o.id}">3:00</div>
+        <button class="btn success" style="width:100%;margin-top:6px" onclick="despacharPedido('${o.id}','${o.producto}',${o.cantidad})">Despachar a CETLOG ✓</button>
+      </div>`;
+    }
+    // pendiente
+    return `<div class="order-item pendiente" id="order-${o.id}">
+      <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
+      <div class="order-detail">De: ${o.origen} · ${time}<br>${o.notas ? o.notas : ""}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button class="btn success" style="flex:1" onclick="aceptarPedido('${o.id}')">Aceptar</button>
+        <button class="btn danger" style="flex:1" onclick="rechazarPedido('${o.id}')">Rechazar</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function startTimer(orderId, acceptedAt) {
+  if (timers[orderId]) return;
+  const deadline = acceptedAt ? (acceptedAt.toDate ? acceptedAt.toDate().getTime() : acceptedAt) + 3*60*1000 : Date.now() + 3*60*1000;
+  timers[orderId] = setInterval(async () => {
+    const remaining = deadline - Date.now();
+    const el = document.getElementById("timer-"+orderId);
+    if (!el) { clearInterval(timers[orderId]); return; }
+    if (remaining <= 0) {
+      clearInterval(timers[orderId]);
+      el.textContent = "¡TIEMPO!";
+      el.className = "timer expired";
+      await updateDoc(doc(db,"pedidos",orderId), {estado:"vencido"});
+      await addDoc(collection(db,"penalizaciones"), {
+        empresa: COMPANY_ID, motivo: "Tiempo vencido",
+        detalle: "Pedido no despachado en 3 minutos",
+        timestamp: serverTimestamp()
+      });
+      return;
+    }
+    const m = Math.floor(remaining/60000);
+    const s = Math.floor((remaining%60000)/1000);
+    el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+    el.className = "timer" + (remaining < 60000 ? " warning" : "");
+  }, 500);
+}
+
+window.aceptarPedido = async function(id) {
+  await updateDoc(doc(db,"pedidos",id), {estado:"en-proceso", acceptedAt: serverTimestamp()});
+};
+
+window.rechazarPedido = async function(id) {
+  await updateDoc(doc(db,"pedidos",id), {estado:"rechazado"});
+};
+
+window.despacharPedido = async function(id, producto, cantidad) {
+  // Descontar del stock de UNILEVER MEX (en unidades = cajas * 8)
+  const unidades = cantidad * 8;
+  const newStock = {...currentStock};
+  newStock[producto] = (newStock[producto] || 0) - unidades;
+  if (newStock[producto] < 0) { alert("Stock insuficiente para despachar."); return; }
+
+  await setDoc(doc(db,"stocks",COMPANY_ID), newStock);
+
+  // Agregar al stock de CETLOG
+  const cetlogRef = doc(db,"stocks","CETLOG");
+  const cetlogSnap = await getDoc(cetlogRef);
+  const cetlogStock = cetlogSnap.exists() ? cetlogSnap.data() : {Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
+  // Check limit for CETLOG (23 cajas = 184 uds per product)
+  const CETLOG_LIMIT_UDS = 184;
+  const newCetlogVal = (cetlogStock[producto] || 0) + unidades;
+  if (newCetlogVal > CETLOG_LIMIT_UDS) {
+    alert(`⚠ CETLOG alcanzaría el stock límite en ${producto}. No se puede recibir.`);
+    return;
+  }
+  cetlogStock[producto] = newCetlogVal;
+  await setDoc(cetlogRef, cetlogStock);
+
+  // Log movement
+  await addDoc(collection(db,"movimientos"), {
+    empresa: COMPANY_ID, tipo: "orden-compra", producto, cantidad,
+    unidad: "cj", direccion: "salida",
+    stockResultante: newStock[producto],
+    notas: `Despachado a CETLOG`, timestamp: serverTimestamp()
+  });
+
+  await updateDoc(doc(db,"pedidos",id), {estado:"completado"});
+  clearInterval(timers[id]);
+};
+
+window.registrarProduccion = async function() {
+  const producto = document.getElementById("mvProducto").value;
+  const cajas = parseInt(document.getElementById("mvCantidad").value);
+  const alert = document.getElementById("mvAlert");
+  if (!cajas || cajas < 1) return;
+  const unidades = cajas * 8;
+  const newStock = {...currentStock};
+  newStock[producto] = (newStock[producto] || 0) + unidades;
+  await setDoc(doc(db,"stocks",COMPANY_ID), newStock);
+  await addDoc(collection(db,"movimientos"), {
+    empresa: COMPANY_ID, tipo: "orden-compra", producto, cantidad: cajas,
+    unidad: "cj", direccion: "entrada",
+    stockResultante: newStock[producto],
+    notas: "Producción registrada", timestamp: serverTimestamp()
+  });
+  showAlert(alert, `+${cajas} cajas de ${producto} registradas.`, false);
+};
+
+function labelTipo(t) {
+  return {
+    "orden-compra":"Orden de compra","orden-pedido":"Orden de pedido",
+    "transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"
+  }[t] || t;
+}
+
+function showAlert(el, msg, isError) {
+  el.textContent = msg;
+  el.className = "alert-banner show" + (isError ? " error" : "");
+  setTimeout(() => el.className = "alert-banner", 4000);
+}
+
+initStock();
+</script>
+</body>
+</html>
