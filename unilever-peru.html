@@ -3,239 +3,196 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>UNILEVER PERÚ — Cadena de Suministros</title>
+  <title>UNILEVER PERÚ</title>
   <link rel="stylesheet" href="shared.css"/>
-  <style>
-    .main-with-panel { margin-right: 330px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .info-box { background: #E6F1FB; border: 1px solid #B5D4F4; border-radius: 10px; padding: 12px 14px; font-size:13px; color:#185FA5; margin-bottom:1rem; }
-  </style>
 </head>
 <body>
 <div class="topbar">
   <div>
     <div class="topbar-title" style="color:#3B6D11;">🌿 UNILEVER PERÚ</div>
-    <div class="topbar-sub">Coordinador local — Ve stock de CETLOG · Sin stock propio</div>
+    <div class="topbar-sub">Coordinador local · Ve stock de CETLOG · Sin stock propio</div>
   </div>
-  <div id="connStatus" style="font-size:12px;color:#888780;">Conectando...</div>
+  <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 
-<div class="main-with-panel">
+<div class="with-panel">
 <div class="page">
 
-  <div class="info-box">📦 UNILEVER PERÚ no almacena productos. El stock que ves abajo es el de <strong>CETLOG</strong>. Cuando recibes una orden de compra, revisa si hay stock en CETLOG — si hay, envía una <strong>Orden de Pedido a CETLOG</strong> para que despache. Si no hay, haz una <strong>Orden de Compra a UNILEVER MEX</strong>.</div>
+  <div class="info-box">Stock de CETLOG (solo lectura). Si hay stock → envía Orden de Pedido a CETLOG. Si no hay → envía Orden de Compra a UNILEVER MEX.</div>
 
-  <p class="section-title">Stock de CETLOG (solo lectura)</p>
+  <p class="section-title">Stock de CETLOG</p>
   <div class="stock-grid" id="stockGrid"></div>
+  <div class="total-bar" id="totalBar"></div>
   <div class="alert-banner" id="alertBanner"></div>
 
-  <!-- ACCIONES -->
-  <p class="section-title">Acciones</p>
-  <div class="card">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('op')">Orden de Pedido → CETLOG</button>
+    <button class="tab" onclick="switchTab('oc')">Orden de Compra → UNILEVER MEX</button>
+  </div>
 
-      <!-- Orden de pedido a CETLOG -->
-      <div>
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px;color:#534AB7;">Orden de Pedido → CETLOG</p>
-        <p style="font-size:12px;color:#888780;margin-bottom:10px;">Hay stock en CETLOG. Pídele que despache al comprador.</p>
-        <div class="field" style="margin-bottom:8px">
-          <label>Producto</label>
-          <select id="opProducto"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+  <div class="tab-content active" id="tab-op">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Hay stock en CETLOG. Pídele que despache al comprador.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="field"><label>Producto</label>
+          <select id="opProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
         </div>
-        <div class="field" style="margin-bottom:8px">
-          <label>Cajas</label>
-          <input type="number" id="opCantidad" min="1" value="1"/>
+        <div class="field"><label>Cajas</label><input type="number" id="opCant" min="1" value="1"/></div>
+        <div class="field"><label>Destino final</label>
+          <select id="opDest"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG_CD">YICHANG CD</option></select>
         </div>
-        <div class="field" style="margin-bottom:8px">
-          <label>Destino (comprador)</label>
-          <select id="opDestino">
-            <option value="TOTTUS_CD">TOTTUS CD</option>
-            <option value="YICHANG_CD">YICHANG CD</option>
-          </select>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn" style="width:100%;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="enviarOP()">Enviar orden de pedido</button>
         </div>
-        <button class="btn" style="width:100%;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="enviarOrdenPedido()">Enviar Orden de Pedido a CETLOG</button>
-        <div class="alert-banner" id="opAlert"></div>
       </div>
-
-      <!-- Orden de compra a UNILEVER MEX -->
-      <div>
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px;color:#185FA5;">Orden de Compra → UNILEVER MEX</p>
-        <p style="font-size:12px;color:#888780;margin-bottom:10px;">No hay stock en CETLOG. Pide producción a MEX.</p>
-        <div class="field" style="margin-bottom:8px">
-          <label>Producto</label>
-          <select id="ocProducto"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-        </div>
-        <div class="field" style="margin-bottom:8px">
-          <label>Cajas</label>
-          <input type="number" id="ocCantidad" min="1" value="1"/>
-        </div>
-        <div class="field" style="margin-bottom:8px">
-          <label>Notas</label>
-          <input type="text" id="ocNotas" placeholder="Motivo del pedido"/>
-        </div>
-        <button class="btn primary" style="width:100%" onclick="enviarOrdenCompra()">Enviar Orden de Compra a UNILEVER MEX</button>
-        <div class="alert-banner" id="ocAlert"></div>
-      </div>
-
+      <div class="alert-banner" id="opAlert"></div>
     </div>
   </div>
 
-  <!-- HISTORIAL -->
+  <div class="tab-content" id="tab-oc">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">No hay stock en CETLOG. Pide producción a UNILEVER MEX.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="field"><label>Producto</label>
+          <select id="ocProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+        </div>
+        <div class="field"><label>Cajas</label><input type="number" id="ocCant" min="1" value="1"/></div>
+        <div class="field"><label>Notas</label><input type="text" id="ocNotas" placeholder="Motivo"/></div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar orden de compra</button>
+        </div>
+      </div>
+      <div class="alert-banner" id="ocAlert"></div>
+    </div>
+  </div>
+
   <p class="section-title">Órdenes emitidas</p>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cajas</th><th>Destino</th><th>Estado</th></tr></thead>
-      <tbody id="historialBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes.</td></tr></tbody>
+      <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes.</td></tr></tbody>
     </table>
   </div>
 
 </div>
 </div>
 
-<!-- PANEL DE ÓRDENES DE COMPRA ENTRANTES (de TOTTUS CD y YICHANG) -->
 <div class="orders-panel">
   <p class="section-title">Órdenes de compra recibidas</p>
   <p style="font-size:11px;color:#888780;margin-bottom:12px;">De TOTTUS CD y YICHANG CD</p>
-  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos pendientes.</p></div>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p></div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, onSnapshot, addDoc, updateDoc, serverTimestamp, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, addDoc, serverTimestamp, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
-const COMPANY_ID = "UNILEVER_PERU";
-const PRODUCTS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
-const CETLOG_LIMIT = 184; // unidades por producto
-
-const app = initializeApp({
-  apiKey: "AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",
-  authDomain: "cadena-de-suministros-1d554.firebaseapp.com",
-  projectId: "cadena-de-suministros-1d554",
-  storageBucket: "cadena-de-suministros-1d554.firebasestorage.app",
-  messagingSenderId: "154153617557",
-  appId: "1:154153617557:web:0a58532b2008c9d09df39c"
-});
+const CFG = { apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww", authDomain:"cadena-de-suministros-1d554.firebaseapp.com", projectId:"cadena-de-suministros-1d554", storageBucket:"cadena-de-suministros-1d554.firebasestorage.app", messagingSenderId:"154153617557", appId:"1:154153617557:web:0a58532b2008c9d09df39c" };
+const app = initializeApp(CFG);
 const db = getFirestore(app);
 
+const ID = "UNILEVER_PERU";
+const PRODS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const CETLOG_LIMIT = 184;
 let cetlogStock = {Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
 
 document.getElementById("connStatus").textContent = "✓ Conectado";
 
-// Listen CETLOG stock (read only)
-onSnapshot(doc(db,"stocks","CETLOG"), snap => {
-  if (snap.exists()) cetlogStock = snap.data();
-  renderStock();
+onSnapshot(doc(db,"stocks","CETLOG"), s => { if(s.exists()){cetlogStock=s.data();renderStock();} });
+
+// Orders incoming (from TOTTUS_CD, YICHANG_CD to UNILEVER_PERU)
+onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")), s => {
+  const orders=[]; s.forEach(d=>orders.push({id:d.id,...d.data()})); renderIncoming(orders);
 });
 
-// Listen incoming orders (from TOTTUS_CD, YICHANG_CD destined to UNILEVER_PERU)
-onSnapshot(query(collection(db,"pedidos"), where("destino","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
-  const orders = [];
-  snap.forEach(d => orders.push({id:d.id,...d.data()}));
-  renderOrders(orders);
-});
-
-// Listen emitted orders (from UNILEVER_PERU)
-onSnapshot(query(collection(db,"pedidos"), where("origen","==",COMPANY_ID), orderBy("timestamp","desc")), snap => {
-  const rows = [];
-  snap.forEach(d => rows.push({id:d.id,...d.data()}));
-  renderHistorial(rows);
+// Orders emitted by UNILEVER_PERU
+onSnapshot(query(collection(db,"pedidos"),where("origen","==",ID),orderBy("timestamp","desc")), s => {
+  const rows=[]; s.forEach(d=>rows.push({id:d.id,...d.data()})); renderHist(rows);
 });
 
 function renderStock() {
-  const grid = document.getElementById("stockGrid");
-  grid.innerHTML = PRODUCTS.map(p => {
-    const uds = cetlogStock[p] || 0;
-    const cajas = Math.floor(uds / 8);
-    const pct = Math.min(100, Math.round((uds / CETLOG_LIMIT) * 100));
-    const status = uds === 0 ? "danger" : uds / CETLOG_LIMIT <= 0.2 ? "warning" : "ok";
-    const barColor = status === "ok" ? "#1D9E75" : status === "warning" ? "#EF9F27" : "#E24B4A";
-    return `<div class="stock-card ${status !== "ok" ? status : ""}">
+  const total = PRODS.reduce((a,p)=>a+(cetlogStock[p]||0),0);
+  const pct = Math.min(100,Math.round(total/CETLOG_LIMIT*100));
+  const color = total===0?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
+  document.getElementById("stockGrid").innerHTML = PRODS.map(p=>{
+    const v=cetlogStock[p]||0;
+    const status=v===0?"danger":v/CETLOG_LIMIT<=0.2?"warning":"ok";
+    const bc=status==="ok"?"#1D9E75":status==="warning"?"#EF9F27":"#E24B4A";
+    const pp=Math.min(100,Math.round(v/CETLOG_LIMIT*100));
+    return `<div class="stock-card ${status!=="ok"?status:""}">
       <div class="product-name">${p}</div>
-      <div class="stock-num ${status}">${uds}</div>
-      <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${barColor}"></div></div>
+      <div class="stock-num ${status}">${v}</div>
+      <div class="bar-wrap"><div class="bar" style="width:${pp}%;background:${bc}"></div></div>
     </div>`;
   }).join("");
-
-  const alerts = PRODUCTS.filter(p => (cetlogStock[p]||0) === 0);
-  const banner = document.getElementById("alertBanner");
-  if (alerts.length) {
-    banner.className = "alert-banner error show";
-    banner.textContent = "⚠ Sin stock en CETLOG: " + alerts.join(", ");
-  } else banner.className = "alert-banner";
+  document.getElementById("totalBar").innerHTML=`
+    <span class="total-bar-label">Total CETLOG</span>
+    <div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="total-bar-num" style="color:${color}">${total} / ${CETLOG_LIMIT} uds</span>`;
+  const b=document.getElementById("alertBanner");
+  const zeros=PRODS.filter(p=>(cetlogStock[p]||0)===0);
+  if(zeros.length){b.className="alert-banner error show";b.textContent="Sin stock en CETLOG: "+zeros.join(", ");}
+  else b.className="alert-banner";
 }
 
-function renderOrders(orders) {
-  const container = document.getElementById("ordersContainer");
-  if (!orders.length) { container.innerHTML = '<p style="font-size:13px;color:#b4b2a9;text-align:center;margin-top:2rem;">Sin pedidos.</p>'; return; }
-  container.innerHTML = orders.map(o => {
-    const time = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
-    const estadoBadge = `<span class="badge ${o.estado}">${o.estado}</span>`;
-    return `<div class="order-item ${o.estado}">
+function renderIncoming(orders) {
+  const c=document.getElementById("ordersContainer");
+  if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p>';return;}
+  c.innerHTML=orders.map(o=>{
+    const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    const orig={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.origen]||o.origen;
+    return `<div class="order-item ${o.estado==="registrado"?"registrado":"pendiente"}">
       <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
-      <div class="order-detail">De: ${o.origen} · ${time}<br>${estadoBadge}</div>
-      ${o.estado === "pendiente" ? `<p style="font-size:12px;color:#5f5e5a;margin-top:6px;">Revisa stock de CETLOG y usa las acciones de abajo para responder.</p>` : ""}
+      <div class="order-detail">De: ${orig} · ${t}</div>
+      <span class="badge orden-compra">Orden de compra</span>
     </div>`;
   }).join("");
 }
 
-function renderHistorial(rows) {
-  const body = document.getElementById("historialBody");
-  if (!rows.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes.</td></tr>'; return; }
-  body.innerHTML = rows.map(r => {
-    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE") : "—";
-    const dest = {UNILEVER_MEX:"UNILEVER MEX", CETLOG:"CETLOG"}[r.destino] || r.destino;
-    return `<tr>
-      <td style="color:#888780">${time}</td>
-      <td><span class="badge ${r.tipo}">${labelTipo(r.tipo)}</span></td>
-      <td>${r.producto}</td>
-      <td>${r.cantidad} cj</td>
-      <td>${dest}</td>
-      <td><span class="badge ${r.estado}">${r.estado}</span></td>
-    </tr>`;
+function renderHist(rows) {
+  const b=document.getElementById("histBody");
+  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes.</td></tr>';return;}
+  const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG"};
+  const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
+  b.innerHTML=rows.map(r=>{
+    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    return `<tr><td style="color:#888780">${t}</td>
+      <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
+      <td>${r.producto}</td><td>${r.cantidad} cj</td>
+      <td>${labels[r.destino]||r.destino}</td>
+      <td><span class="badge ${r.estado}">${r.estado}</span></td></tr>`;
   }).join("");
 }
 
-window.enviarOrdenPedido = async function() {
-  const producto = document.getElementById("opProducto").value;
-  const cajas = parseInt(document.getElementById("opCantidad").value);
-  const destino_comprador = document.getElementById("opDestino").value;
-  const alertEl = document.getElementById("opAlert");
-  if (!cajas || cajas < 1) return;
-  const uds = cajas * 8;
-  if ((cetlogStock[producto]||0) < uds) {
-    showAlert(alertEl, `Stock insuficiente en CETLOG para ${producto}. Haz una OC a UNILEVER MEX.`, true);
-    return;
-  }
-  await addDoc(collection(db,"pedidos"), {
-    destino: "CETLOG", tipo: "orden-pedido", producto, cantidad: cajas,
-    origen: COMPANY_ID, destinoFinal: destino_comprador,
-    estado: "pendiente", timestamp: serverTimestamp()
-  });
-  showAlert(alertEl, `Orden de pedido enviada a CETLOG — ${cajas} cj de ${producto}.`, false);
+window.enviarOP = async function() {
+  const prod=document.getElementById("opProd").value;
+  const cajas=parseInt(document.getElementById("opCant").value);
+  const dest=document.getElementById("opDest").value;
+  const al=document.getElementById("opAlert");
+  if(!cajas||cajas<1) return;
+  const uds=cajas*8;
+  if((cetlogStock[prod]||0)<uds){showAlert(al,`Stock insuficiente en CETLOG para ${prod}.`,true);return;}
+  await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",producto:prod,cantidad:cajas,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
+  showAlert(al,`Orden de pedido enviada a CETLOG — ${cajas} cj de ${prod}.`,false);
 };
 
-window.enviarOrdenCompra = async function() {
-  const producto = document.getElementById("ocProducto").value;
-  const cajas = parseInt(document.getElementById("ocCantidad").value);
-  const notas = document.getElementById("ocNotas").value;
-  const alertEl = document.getElementById("ocAlert");
-  if (!cajas || cajas < 1) return;
-  await addDoc(collection(db,"pedidos"), {
-    destino: "UNILEVER_MEX", tipo: "orden-compra", producto, cantidad: cajas,
-    origen: COMPANY_ID, notas,
-    estado: "pendiente", timestamp: serverTimestamp()
-  });
-  showAlert(alertEl, `Orden de compra enviada a UNILEVER MEX — ${cajas} cj de ${producto}.`, false);
+window.enviarOC = async function() {
+  const prod=document.getElementById("ocProd").value;
+  const cajas=parseInt(document.getElementById("ocCant").value);
+  const notas=document.getElementById("ocNotas").value;
+  const al=document.getElementById("ocAlert");
+  if(!cajas||cajas<1) return;
+  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
+  showAlert(al,`Orden de compra enviada a UNILEVER MEX — ${cajas} cj de ${prod}.`,false);
 };
 
-function labelTipo(t) {
-  return {"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"}[t]||t;
-}
-function showAlert(el, msg, isError) {
-  el.textContent = msg;
-  el.className = "alert-banner show" + (isError ? " error" : "");
-  setTimeout(() => el.className = "alert-banner", 4000);
-}
+window.switchTab = function(t) {
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["op","oc"][i]===t));
+  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
+  document.getElementById("tab-"+t).classList.add("active");
+};
+
+function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",4000);}
 
 renderStock();
 </script>
