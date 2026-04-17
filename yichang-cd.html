@@ -145,7 +145,6 @@ function renderStock() {
     return `<div class="stock-card ${status!=="ok"?status:""}">
       <div class="product-name">${p}</div>
       <div class="stock-num ${status==="over-limit"?"danger":status}">${uds}</div>
-      <div class="stock-unit">${cajas} cj · máx 120 uds</div>
       <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${barColor}"></div></div>
     </div>`;
   }).join("");
