@@ -145,8 +145,8 @@ function renderStock() {
     const barColor = status === "ok" ? "#1D9E75" : status === "warning" ? "#EF9F27" : "#E24B4A";
     return `<div class="stock-card ${status !== "ok" ? status : ""}">
       <div class="product-name">${p}</div>
-      <div class="stock-num ${status === "over-limit" ? "danger" : status}">${cajas}</div>
-      <div class="stock-unit">cj / ${Math.floor(LIMIT_UDS/8)} máx</div>
+      <div class="stock-num ${status === "over-limit" ? "danger" : status}">${uds}</div>
+      <div class="stock-unit">${cajas} cj · máx ${LIMIT_UDS} uds</div>
       <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${barColor}"></div></div>
     </div>`;
   }).join("");

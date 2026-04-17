@@ -216,7 +216,7 @@ function renderStocks() {
     const s = stockData[key] || co.products;
     const pills = PRODUCTS.map(p => {
       const val = s[p] || 0;
-      const display = co.unit === "cajas" ? `${Math.floor(val/8)} cj` : `${val} uds`;
+      const display = co.unit === "cajas" ? `${val} uds (${Math.floor(val/8)} cj)` : `${val} uds`;
       return `<span class="mini-pill">${p}: ${display}</span>`;
     }).join("");
     return `<div class="company-card">
