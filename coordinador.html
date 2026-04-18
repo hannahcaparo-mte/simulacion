@@ -42,7 +42,6 @@
   <!-- TABS -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('stocks')">Stocks en tiempo real</button>
-    <button class="tab" onclick="switchTab('pedidos')">Enviar pedido</button>
     <button class="tab" onclick="switchTab('historial')">Historial global</button>
     <button class="tab" onclick="switchTab('penhistorial')">Historial penalizaciones</button>
   </div>
@@ -50,63 +49,6 @@
   <!-- TAB: STOCKS -->
   <div class="tab-content active" id="tab-stocks">
     <div class="companies-grid" id="companiesGrid"></div>
-  </div>
-
-  <!-- TAB: ENVIAR PEDIDO -->
-  <div class="tab-content" id="tab-pedidos">
-    <div class="card">
-      <p style="font-size:13px;color:#5f5e5a;margin-bottom:1rem;">Envía un pedido a cualquier empresa. El pedido aparecerá en su pantalla y deberán aceptarlo y despacharlo en 3 minutos.</p>
-      <div class="form-grid-4">
-        <div class="field">
-          <label>Empresa destino</label>
-          <select id="pedidoDestino">
-            <option value="UNILEVER_MEX">UNILEVER MEX</option>
-            <option value="UNILEVER_PERU">UNILEVER PERÚ</option>
-            <option value="CETLOG">CETLOG</option>
-            <option value="TOTTUS_CD">TOTTUS CD</option>
-            <option value="YICHANG_CD">YICHANG CD</option>
-            <option value="TOTTUS_TIENDA">TOTTUS TIENDA</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Tipo de transacción</label>
-          <select id="pedidoTipo">
-            <option value="orden-compra">Orden de compra</option>
-            <option value="orden-pedido">Orden de pedido</option>
-            <option value="transf-salida">Transferencia de salida</option>
-            <option value="transf-entrada">Transferencia de entrada</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Producto</label>
-          <select id="pedidoProducto">
-            <option value="Rojo">Rojo</option>
-            <option value="Azul">Azul</option>
-            <option value="Rosado">Rosado</option>
-            <option value="Blanco">Blanco</option>
-            <option value="Amarillo">Amarillo</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Cantidad</label>
-          <input type="number" id="pedidoCantidad" min="1" value="1" placeholder="Ej: 2 (cajas o uds)"/>
-        </div>
-      </div>
-      <div class="form-grid-3">
-        <div class="field">
-          <label>Origen / De parte de</label>
-          <input type="text" id="pedidoOrigen" placeholder="Ej: COORDINADOR"/>
-        </div>
-        <div class="field">
-          <label>Notas (opcional)</label>
-          <input type="text" id="pedidoNotas" placeholder="Instrucciones adicionales"/>
-        </div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn primary" style="width:100%" onclick="enviarPedido()">Enviar pedido</button>
-        </div>
-      </div>
-      <div class="alert-banner" id="pedidoAlert"></div>
-    </div>
   </div>
 
   <!-- TAB: HISTORIAL GLOBAL -->
@@ -272,32 +214,11 @@ function renderPenHistorial(rows) {
   }).join("");
 }
 
-window.enviarPedido = async function() {
-  const destino = document.getElementById("pedidoDestino").value;
-  const tipo = document.getElementById("pedidoTipo").value;
-  const producto = document.getElementById("pedidoProducto").value;
-  const cantidad = parseInt(document.getElementById("pedidoCantidad").value);
-  const origen = document.getElementById("pedidoOrigen").value || "COORDINADOR";
-  const notas = document.getElementById("pedidoNotas").value;
-  const alert = document.getElementById("pedidoAlert");
 
-  if (!cantidad || cantidad < 1) { showAlert(alert, "Ingresa una cantidad válida.", true); return; }
-
-  await addDoc(collection(db, "pedidos"), {
-    destino, tipo, producto, cantidad, origen, notas,
-    estado: "pendiente",
-    timestamp: serverTimestamp()
-  });
-
-  showAlert(alert, `Pedido enviado a ${COMPANIES[destino]?.label}. Esperando aceptación.`, false);
-  document.getElementById("pedidoCantidad").value = 1;
-  document.getElementById("pedidoNotas").value = "";
-  document.getElementById("pedidoOrigen").value = "";
-};
 
 window.switchTab = function(tab) {
   document.querySelectorAll(".tab").forEach((t,i) => {
-    const tabs = ["stocks","pedidos","historial","penhistorial"];
+    const tabs = ["stocks","historial","penhistorial"];
     t.classList.toggle("active", tabs[i] === tab);
   });
   document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));

@@ -10,14 +10,12 @@
 <div class="topbar">
   <div>
     <div class="topbar-title" style="color:#0F6E56;">🏪 TOTTUS CD</div>
-    <div class="topbar-sub">Centro de distribución · Cajas · Límite total: 184 uds</div>
+    <div class="topbar-sub">Centro de distribución · Límite total: 184 uds</div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
-
 <div class="with-panel">
 <div class="page">
-
   <p class="section-title">Mi stock</p>
   <div class="stock-grid" id="stockGrid"></div>
   <div class="total-bar" id="totalBar"></div>
@@ -25,11 +23,12 @@
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('oc')">Orden de compra → UNILEVER PERÚ</button>
-    <button class="tab" onclick="switchTab('ts')">Transferencia → TOTTUS TIENDA</button>
+    <button class="tab" onclick="switchTab('mv')">Registrar movimiento manual</button>
   </div>
 
   <div class="tab-content active" id="tab-oc">
     <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock, pide a UNILEVER PERÚ.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
         <div class="field"><label>Producto</label>
           <select id="ocProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
@@ -43,97 +42,73 @@
     </div>
   </div>
 
-  <div class="tab-content" id="tab-ts">
+  <div class="tab-content" id="tab-mv">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Registra la salida. Se descuenta de tu stock y llega una notificación a TOTTUS TIENDA.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-        <div class="field"><label>Producto</label>
-          <select id="tsProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando tengas una transferencia aceptada de TOTTUS TIENDA: <strong>①</strong> Registra aquí → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="field"><label>Tipo</label>
+          <select id="mvTipo"><option value="transf-salida">Transferencia salida</option><option value="orden-compra">Orden de compra (entrada)</option></select>
         </div>
-        <div class="field"><label>Cajas</label><input type="number" id="tsCant" min="1" value="1"/></div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn" style="width:100%;background:#FAEEDA;color:#633806;border-color:#EF9F27" onclick="transferir()">Registrar transferencia de salida</button>
+        <div class="field"><label>Producto</label>
+          <select id="mvProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+        </div>
+        <div class="field"><label>Cantidad (uds)</label><input type="number" id="mvCant" min="1" value="8"/></div>
+        <div class="field"><label>Dirección</label>
+          <select id="mvDir"><option value="salida">Salida → TOTTUS TIENDA</option><option value="entrada">Entrada (recepción)</option></select>
         </div>
       </div>
-      <div class="alert-banner" id="tsAlert" style="margin-top:10px;margin-bottom:0"></div>
+      <button class="btn primary" onclick="registrarMov()">Registrar movimiento</button>
+      <div class="alert-banner" id="mvAlert" style="margin-top:10px;margin-bottom:0"></div>
     </div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Notas</th></tr></thead>
-      <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr></thead>
+      <tbody id="histBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
     </table>
   </div>
-
 </div>
 </div>
 
 <div class="orders-panel">
-  <p class="section-title">Pedidos y transferencias recibidas</p>
-  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin pedidos.</p></div>
+  <p class="section-title">Solicitudes recibidas</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:12px;">Transferencias de TOTTUS TIENDA</p>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin solicitudes.</p></div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
+const app=initializeApp(CFG); const db=getFirestore(app);
+const ID="TOTTUS_CD", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const INIT={Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24}, LIMIT=184;
+let stock={...INIT}, timers={};
+document.getElementById("connStatus").textContent="✓ Conectado";
 
-const CFG = { apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww", authDomain:"cadena-de-suministros-1d554.firebaseapp.com", projectId:"cadena-de-suministros-1d554", storageBucket:"cadena-de-suministros-1d554.firebasestorage.app", messagingSenderId:"154153617557", appId:"1:154153617557:web:0a58532b2008c9d09df39c" };
-const app = initializeApp(CFG);
-const db = getFirestore(app);
-
-const ID = "TOTTUS_CD";
-const PRODS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
-const INIT = {Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24};
-const LIMIT = 184;
-let stock = {...INIT};
-let timers = {};
-
-document.getElementById("connStatus").textContent = "✓ Conectado";
-
-(async()=>{
-  const s=await getDoc(doc(db,"stocks",ID));
-  if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT);
-  else stock=s.data(); renderStock();
-})();
-
-onSnapshot(doc(db,"stocks",ID), s=>{if(s.exists()){stock=s.data();renderStock();}});
-
-onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")), s=>{
-  const rows=[]; s.forEach(d=>rows.push({id:d.id,...d.data()})); renderHist(rows);
-});
-
-onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")), s=>{
-  const orders=[]; s.forEach(d=>orders.push({id:d.id,...d.data()})); renderOrders(orders);
-});
+(async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
+onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
+onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{const r=[];s.forEach(d=>r.push({id:d.id,...d.data()}));renderHist(r);});
+onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{const r=[];s.forEach(d=>r.push({id:d.id,...d.data()}));renderOrders(r);});
 
 function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   const pct=Math.min(100,Math.round(total/LIMIT*100));
-  const isOver=total>=LIMIT;
-  const color=isOver?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
+  const isOver=total>=LIMIT; const color=isOver?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
   document.getElementById("stockGrid").innerHTML=PRODS.map(p=>{
-    const v=stock[p]||0;
-    const s=v===0?"danger":"ok";
-    return `<div class="stock-card ${s!=="ok"?s:""}">
-      <div class="product-name">${p}</div>
-      <div class="stock-num ${s}">${v}</div>
-      <div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${s==="ok"?"#1D9E75":"#E24B4A"}"></div></div>
-    </div>`;
+    const v=stock[p]||0; const s=v===0?"danger":"ok";
+    return `<div class="stock-card ${s!=="ok"?s:""}"><div class="product-name">${p}</div><div class="stock-num ${s}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${s==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
-  document.getElementById("totalBar").innerHTML=`
-    <span class="total-bar-label">Stock total</span>
-    <div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-    <span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
+  document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
   const b=document.getElementById("alertBanner");
-  if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (184 uds).";}
-  else b.className="alert-banner";
+  if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (184 uds).";}else b.className="alert-banner";
 }
 
 function renderHist(rows){
   const b=document.getElementById("histBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
+  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
   const tipos={"orden-compra":"Orden de compra","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"};
   b.innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:#b4b2a9">${rows.length-i}</td>
@@ -141,33 +116,31 @@ function renderHist(rows){
     <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
     <td>${r.producto}</td>
     <td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
+    <td>${r.direccion==="salida"?"Salida":"Entrada"}</td>
     <td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
 }
 
 function renderOrders(orders){
   const c=document.getElementById("ordersContainer");
-  if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin pedidos.</p>';return;}
+  if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin solicitudes.</p>';return;}
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const tipos={"orden-compra":"Orden de compra","transf-entrada":"Transf. entrada"};
-    if(o.estado==="completado"||o.estado==="registrado") return `<div class="order-item ${o.estado}">
-      <div class="order-title">${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail">${t} · <span class="badge ${o.estado}">${o.estado==="completado"?"Completado":"Registrado"}</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido">
-      <div class="order-title">${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail"><span class="badge vencido">Vencido</span></div></div>`;
+    if(o.estado==="completado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
+    if(o.estado==="vencido") return `<div class="order-item vencido"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
+    if(o.estado==="rechazado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
     if(o.estado==="en-proceso"){
       if(!timers[o.id]) startTimer(o.id,o.acceptedAt);
       return `<div class="order-item en-proceso" id="ord-${o.id}">
-        <div class="order-title">${o.producto} — ${o.cantidad} uds</div>
-        <div class="order-detail">De: ${o.origen} · <span class="badge ${o.tipo}">${tipos[o.tipo]||o.tipo}</span></div>
+        <div class="order-title">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div>
+        <div class="order-detail">De: TOTTUS TIENDA · <span class="badge transf-salida">En proceso</span></div>
         <div class="timer" id="tmr-${o.id}">3:00</div>
-        <button class="btn success" style="width:100%;margin-top:6px" onclick="completar('${o.id}','${o.producto}',${o.cantidad},'${o.tipo}')">Registrar recepción ✓</button>
+        <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
+        <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
       </div>`;
     }
     return `<div class="order-item pendiente" id="ord-${o.id}">
-      <div class="order-title">${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail">De: ${o.origen} · ${t}<br><span class="badge ${o.tipo}">${tipos[o.tipo]||o.tipo}</span></div>
+      <div class="order-title">${o.producto} — ${o.cantidad} uds de TOTTUS TIENDA</div>
+      <div class="order-detail">${t} · <span class="badge transf-salida">Solicitud transferencia</span></div>
       <div style="margin-top:8px;display:flex;gap:6px;">
         <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
         <button class="btn danger" style="flex:1" onclick="rechazar('${o.id}')">Rechazar</button>
@@ -181,65 +154,54 @@ function startTimer(oid,acceptedAt){
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
-    if(rem<=0){
-      clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";
-      await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});
-      await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Pedido no completado en 3 min",timestamp:serverTimestamp()});
-      return;
-    }
+    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Transferencia no despachada en 3 min",timestamp:serverTimestamp()});return;}
     const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
     el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(rem<60000?" warning":"");
   },500);
 }
 
-window.aceptar = async id => await updateDoc(doc(db,"pedidos",id),{estado:"en-proceso",acceptedAt:serverTimestamp()});
-window.rechazar = async id => await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
+window.aceptar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"en-proceso",acceptedAt:serverTimestamp()});
+window.rechazar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
+window.marcarDespachado=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
-window.completar = async function(id,producto,cant,tipo){
-  const ns={...stock};
-  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
-  if(total+cant>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Total superaría ${LIMIT} uds`,timestamp:serverTimestamp()});
-  }
-  ns[producto]=(ns[producto]||0)+cant;
-  await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto,cantidad:cant,direccion:"entrada",notas:"Recepción registrada",timestamp:serverTimestamp()});
-  await updateDoc(doc(db,"pedidos",id),{estado:"completado"});
-  clearInterval(timers[id]);
-};
-
-window.enviarOC = async function(){
+window.enviarOC=async function(){
   const prod=document.getElementById("ocProd").value;
   const cajas=parseInt(document.getElementById("ocCant").value);
   const al=document.getElementById("ocAlert");
   if(!cajas||cajas<1) return;
   await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_PERU",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas*8,direccion:"salida",notas:"Orden de compra enviada a UNILEVER PERÚ",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"OC enviada a UNILEVER PERÚ",timestamp:serverTimestamp()});
   showAlert(al,`Orden de compra enviada — ${cajas} cj de ${prod}.`,false);
 };
 
-window.transferir = async function(){
-  const prod=document.getElementById("tsProd").value;
-  const cajas=parseInt(document.getElementById("tsCant").value);
-  const al=document.getElementById("tsAlert");
-  if(!cajas||cajas<1) return;
-  const uds=cajas*8;
-  if((stock[prod]||0)<uds){showAlert(al,"Stock insuficiente.",true);return;}
-  const ns={...stock}; ns[prod]-=uds;
+window.registrarMov=async function(){
+  const tipo=document.getElementById("mvTipo").value;
+  const prod=document.getElementById("mvProd").value;
+  const cant=parseInt(document.getElementById("mvCant").value);
+  const dir=document.getElementById("mvDir").value;
+  const al=document.getElementById("mvAlert");
+  if(!cant||cant<1) return;
+  const ns={...stock};
+  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
+  if(dir==="salida"){
+    if((ns[prod]||0)<cant){showAlert(al,"Stock insuficiente.",true);return;}
+    ns[prod]-=cant;
+  } else {
+    if(total+cant>LIMIT){showAlert(al,`⚠ Supera el límite total de ${LIMIT} uds.`,true);await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Total superaría ${LIMIT} uds`,timestamp:serverTimestamp()});return;}
+    ns[prod]+=cant;
+  }
   await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"transf-salida",producto:prod,cantidad:uds,direccion:"salida",notas:"Transferencia a TOTTUS TIENDA",timestamp:serverTimestamp()});
-  // Notify TOTTUS TIENDA
-  await addDoc(collection(db,"pedidos"),{destino:"TOTTUS_TIENDA",tipo:"transf-entrada",producto:prod,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  showAlert(al,`Transferencia de salida registrada — ${uds} uds de ${prod} hacia TOTTUS TIENDA.`,false);
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto:prod,cantidad:cant,direccion:dir,notas:dir==="salida"?"Transferencia a TOTTUS TIENDA":"Entrada de stock",timestamp:serverTimestamp()});
+  showAlert(al,`${dir==="salida"?"-":"+"}${cant} uds de ${prod} registrado.${dir==="salida"?" Ahora presiona Despachado en el panel derecho.":""}`,false);
 };
 
-window.switchTab = function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["oc","ts"][i]===t));
+window.switchTab=function(t){
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["oc","mv"][i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.getElementById("tab-"+t).classList.add("active");
 };
 
-function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",4000);}
+function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}
 </script>
 </body>
 </html>
