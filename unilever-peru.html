@@ -151,7 +151,7 @@ function renderIncoming(orders){
       <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj</div>
       <div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
     if(o.estado==="en-proceso"){
-      if(!timers[o.id]) startTimer(o.id,o.acceptedAt);
+      if(!timers[o.id]) startTimer(o.id,o.timestamp);
       return `<div class="order-item en-proceso" id="ord-${o.id}" style="margin-bottom:8px;">
         <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj de ${orig}</div>
         <div class="order-detail"><span class="badge orden-compra">En proceso</span></div>
@@ -160,14 +160,15 @@ function renderIncoming(orders){
         <button class="btn success" style="width:100%;margin-top:4px" onclick="marcarAtendido('${o.id}')">✓ Atendido</button>
       </div>`;
     }
-    // pendiente
+    // pendiente — timer starts immediately
+    if(!timers[o.id]) startTimer(o.id,o.timestamp);
     return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● ${o.producto} — ${o.cantidad} cj de ${orig}</div>
       <div class="order-detail">${t} · <span class="badge orden-compra">Orden de compra</span></div>
-      <div style="margin-top:8px;display:flex;gap:6px;">
-        <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
-        <button class="btn danger" style="flex:1" onclick="rechazar('${o.id}')">Rechazar</button>
-      </div></div>`;
+      <div class="timer" id="tmr-${o.id}">3:00</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Usa los formularios de arriba para responder, luego presiona Atendido</p>
+      <button class="btn success" style="width:100%;margin-top:4px" onclick="marcarAtendido('${o.id}')">✓ Atendido</button>
+    </div>`;
   }).join("");
 }
 
@@ -197,7 +198,7 @@ function renderLlegadasCetlog(rows){
 
 function startTimer(oid,acceptedAt){
   if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
+  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000; // uses arrival timestamp
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
@@ -212,8 +213,7 @@ function startTimer(oid,acceptedAt){
   },500);
 }
 
-window.aceptar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"en-proceso",acceptedAt:serverTimestamp()});
-window.rechazar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
+// aceptar/rechazar removed — timer starts automatically on arrival
 window.marcarAtendido=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
 window.enviarOP=async function(){

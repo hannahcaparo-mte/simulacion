@@ -191,7 +191,7 @@ function renderOrders(orders){
       <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj</div>
       <div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
     if(o.estado==="en-proceso"){
-      if(!timers[o.id]) startTimer(o.id,o.acceptedAt);
+      if(!timers[o.id]) startTimer(o.id,o.timestamp);
       return `<div class="order-item en-proceso" id="ord-${o.id}" style="margin-bottom:8px;">
         <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj → ${dest}</div>
         <div class="order-detail">UNILEVER PERÚ · <span class="badge orden-pedido">En proceso</span></div>
@@ -200,19 +200,20 @@ function renderOrders(orders){
         <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
       </div>`;
     }
+    if(!timers[o.id]) startTimer(o.id,o.timestamp);
     return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
       <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj → ${dest}</div>
       <div class="order-detail">UNILEVER PERÚ · ${t}</div>
-      <div style="margin-top:8px;display:flex;gap:6px;">
-        <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
-        <button class="btn danger" style="flex:1" onclick="rechazar('${o.id}')">Rechazar</button>
-      </div></div>`;
+      <div class="timer" id="tmr-${o.id}">3:00</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra movimiento arriba · ② Presiona Despachado</p>
+      <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
+    </div>`;
   }).join("");
 }
 
 function startTimer(oid,acceptedAt){
   if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
+  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000; // uses arrival timestamp
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
@@ -227,8 +228,7 @@ function startTimer(oid,acceptedAt){
   },500);
 }
 
-window.aceptar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"en-proceso",acceptedAt:serverTimestamp()});
-window.rechazar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
+// aceptar/rechazar removed — timer starts automatically on arrival
 window.marcarDespachado=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
 // Registrar llegada de UNILEVER MEX manualmente — suma al stock y registra en historial
