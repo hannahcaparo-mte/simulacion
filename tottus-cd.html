@@ -16,6 +16,7 @@
 </div>
 <div class="with-panel">
 <div class="page">
+
   <p class="section-title">Mi stock</p>
   <div class="stock-grid" id="stockGrid"></div>
   <div class="total-bar" id="totalBar"></div>
@@ -23,12 +24,14 @@
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('oc')">Orden de compra → UNILEVER PERÚ</button>
-    <button class="tab" onclick="switchTab('mv')">Registrar movimiento manual</button>
+    <button class="tab" onclick="switchTab('ts')">Transferencia → TOTTUS TIENDA</button>
+    <button class="tab" onclick="switchTab('mv')">Registrar movimiento</button>
   </div>
 
+  <!-- Orden de compra -->
   <div class="tab-content active" id="tab-oc">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock, pide a UNILEVER PERÚ.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock suficiente, pide a UNILEVER PERÚ.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
         <div class="field"><label>Producto</label>
           <select id="ocProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
@@ -42,19 +45,46 @@
     </div>
   </div>
 
+  <!-- Transferencia a TOTTUS TIENDA -->
+  <div class="tab-content" id="tab-ts">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Envía una transferencia de salida a TOTTUS TIENDA. Descuenta de tu stock y les llega una notificación en su panel.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div class="field"><label>Producto</label>
+          <select id="tsProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
+        </div>
+        <div class="field"><label>Unidades a transferir</label><input type="number" id="tsCant" min="1" value="8"/></div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn" style="width:100%;background:#FAEEDA;color:#633806;border-color:#EF9F27" onclick="transferirATienda()">Registrar transferencia de salida</button>
+        </div>
+      </div>
+      <div class="alert-banner" id="tsAlert" style="margin-top:10px;margin-bottom:0"></div>
+    </div>
+  </div>
+
+  <!-- Registro manual (para recepciones de pedidos) -->
   <div class="tab-content" id="tab-mv">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando tengas una transferencia aceptada de TOTTUS TIENDA: <strong>①</strong> Registra aquí → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">
+        Para solicitudes de TOTTUS TIENDA aceptadas: <strong>①</strong> Registra aquí la salida → <strong>②</strong> Presiona "Despachado" en el panel derecho.<br/>
+        Para recepciones de UNILEVER PERÚ: usa el botón "Registrar llegada" en el panel derecho.
+      </p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
         <div class="field"><label>Tipo</label>
-          <select id="mvTipo"><option value="transf-salida">Transferencia salida</option><option value="orden-compra">Orden de compra (entrada)</option></select>
+          <select id="mvTipo">
+            <option value="transf-salida">Transferencia salida</option>
+            <option value="orden-compra">Orden de compra (entrada)</option>
+          </select>
         </div>
         <div class="field"><label>Producto</label>
           <select id="mvProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
         </div>
         <div class="field"><label>Cantidad (uds)</label><input type="number" id="mvCant" min="1" value="8"/></div>
         <div class="field"><label>Dirección</label>
-          <select id="mvDir"><option value="salida">Salida → TOTTUS TIENDA</option><option value="entrada">Entrada (recepción)</option></select>
+          <select id="mvDir">
+            <option value="salida">Salida → TOTTUS TIENDA</option>
+            <option value="entrada">Entrada (recepción)</option>
+          </select>
         </div>
       </div>
       <button class="btn primary" onclick="registrarMov()">Registrar movimiento</button>
@@ -65,41 +95,65 @@
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr></thead>
-      <tbody id="histBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+      <thead>
+        <tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr>
+      </thead>
+      <tbody id="histBody">
+        <tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>
+      </tbody>
     </table>
   </div>
+
 </div>
 </div>
 
+<!-- PANEL DERECHO -->
 <div class="orders-panel">
-  <p class="section-title">Solicitudes recibidas</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:12px;">Transferencias de TOTTUS TIENDA</p>
-  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin solicitudes.</p></div>
+  <p class="section-title">Solicitudes y llegadas</p>
+
+  <!-- Llegadas de UNILEVER PERÚ/CETLOG -->
+  <p style="font-size:11px;color:#888780;margin:0 0 6px;">Llegadas de CETLOG</p>
+  <div id="llegadasContainer"><p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p></div>
+
+  <div style="border-top:1px solid #e5e4de;margin:12px 0;"></div>
+
+  <!-- Solicitudes de TOTTUS TIENDA -->
+  <p style="font-size:11px;color:#888780;margin:0 0 6px;">Solicitudes de TOTTUS TIENDA</p>
+  <div id="ordersContainer"><p style="font-size:12px;color:#b4b2a9;text-align:center;">Sin solicitudes.</p></div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
 const ID="TOTTUS_CD", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
 const INIT={Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24}, LIMIT=184;
 let stock={...INIT}, timers={};
+
 document.getElementById("connStatus").textContent="✓ Conectado";
 
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
-onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{const r=[];s.forEach(d=>r.push({id:d.id,...d.data()}));renderHist(r);});
-onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{const r=[];s.forEach(d=>r.push({id:d.id,...d.data()}));renderOrders(r);});
+onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
+  renderHist(r.filter(x=>x.manual===true));
+});
+onSnapshot(query(collection(db,"llegadas"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderLlegadas(r);
+});
+onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderOrders(r);
+});
 
 function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   const pct=Math.min(100,Math.round(total/LIMIT*100));
   const isOver=total>=LIMIT; const color=isOver?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
   document.getElementById("stockGrid").innerHTML=PRODS.map(p=>{
-    const v=stock[p]||0; const s=v===0?"danger":"ok";
-    return `<div class="stock-card ${s!=="ok"?s:""}"><div class="product-name">${p}</div><div class="stock-num ${s}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${s==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
+    const v=stock[p]||0; const st=v===0?"danger":"ok";
+    return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
   const b=document.getElementById("alertBanner");
@@ -108,38 +162,56 @@ function renderStock(){
 
 function renderHist(rows){
   const b=document.getElementById("histBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
+  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>';return;}
   const tipos={"orden-compra":"Orden de compra","transf-salida":"Transf. salida","transf-entrada":"Transf. entrada"};
   b.innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:#b4b2a9">${rows.length-i}</td>
-    <td style="color:#888780">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
+    <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
     <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
     <td>${r.producto}</td>
-    <td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
-    <td>${r.direccion==="salida"?"Salida":"Entrada"}</td>
-    <td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
+    <td style="font-weight:500;color:${r.direccion==="salida"?"#A32D2D":"#0F6E56"}">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
+    <td>${r.direccion==="salida"?"Salida ↑":"Entrada ↓"}</td>
+    <td style="font-size:12px;color:#888780">${r.notas||""}</td>
+  </tr>`).join("");
+}
+
+function renderLlegadas(rows){
+  const c=document.getElementById("llegadasContainer");
+  if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p>';return;}
+  c.innerHTML=rows.map(o=>{
+    const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;">
+      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de CETLOG</div>
+      <div class="order-detail">${t} · <span class="badge registrado">Registrado</span></div></div>`;
+    return `<div class="order-item pendiente" style="margin-bottom:8px;" id="ll-${o.id}">
+      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
+      <div class="order-detail">De: CETLOG · ${t}</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">Registra el movimiento en el formulario de arriba y luego presiona Registrado.</p>
+      <button class="btn success" style="width:100%;margin-top:4px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">✓ Registrar llegada</button>
+    </div>`;
+  }).join("");
 }
 
 function renderOrders(orders){
   const c=document.getElementById("ordersContainer");
-  if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin solicitudes.</p>';return;}
+  if(!orders.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;">Sin solicitudes.</p>';return;}
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="completado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
-    if(o.estado==="rechazado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
+    if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
+    if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
+    if(o.estado==="rechazado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds</div><div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
     if(o.estado==="en-proceso"){
       if(!timers[o.id]) startTimer(o.id,o.acceptedAt);
-      return `<div class="order-item en-proceso" id="ord-${o.id}">
-        <div class="order-title">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div>
-        <div class="order-detail">De: TOTTUS TIENDA · <span class="badge transf-salida">En proceso</span></div>
+      return `<div class="order-item en-proceso" id="ord-${o.id}" style="margin-bottom:8px;">
+        <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds → TOTTUS TIENDA</div>
+        <div class="order-detail">TOTTUS TIENDA · <span class="badge transf-salida">En proceso</span></div>
         <div class="timer" id="tmr-${o.id}">3:00</div>
-        <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
+        <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra movimiento arriba · ② Presiona Despachado</p>
         <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
       </div>`;
     }
-    return `<div class="order-item pendiente" id="ord-${o.id}">
-      <div class="order-title">${o.producto} — ${o.cantidad} uds de TOTTUS TIENDA</div>
+    return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
+      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de TOTTUS TIENDA</div>
       <div class="order-detail">${t} · <span class="badge transf-salida">Solicitud transferencia</span></div>
       <div style="margin-top:8px;display:flex;gap:6px;">
         <button class="btn success" style="flex:1" onclick="aceptar('${o.id}')">Aceptar</button>
@@ -164,14 +236,42 @@ window.aceptar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"en-proces
 window.rechazar=async id=>await updateDoc(doc(db,"pedidos",id),{estado:"rechazado"});
 window.marcarDespachado=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
+window.registrarLlegada=async function(id,producto,cantidad){
+  const ns={...stock};
+  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
+  if(total+cantidad>LIMIT){
+    showAlert(document.getElementById("mvAlert"),`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${cantidad} uds de ${producto} supera ${LIMIT} uds`,timestamp:serverTimestamp()});
+    return;
+  }
+  ns[producto]=(ns[producto]||0)+cantidad;
+  await setDoc(doc(db,"stocks",ID),ns);
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",notas:"Llegada registrada de CETLOG",manual:true,timestamp:serverTimestamp()});
+  await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
+};
+
 window.enviarOC=async function(){
   const prod=document.getElementById("ocProd").value;
   const cajas=parseInt(document.getElementById("ocCant").value);
   const al=document.getElementById("ocAlert");
   if(!cajas||cajas<1) return;
   await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_PERU",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"OC enviada a UNILEVER PERÚ",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"OC enviada a UNILEVER PERÚ",manual:true,timestamp:serverTimestamp()});
   showAlert(al,`Orden de compra enviada — ${cajas} cj de ${prod}.`,false);
+};
+
+window.transferirATienda=async function(){
+  const prod=document.getElementById("tsProd").value;
+  const cant=parseInt(document.getElementById("tsCant").value);
+  const al=document.getElementById("tsAlert");
+  if(!cant||cant<1) return;
+  if((stock[prod]||0)<cant){showAlert(al,"Stock insuficiente.",true);return;}
+  const ns={...stock}; ns[prod]-=cant;
+  await setDoc(doc(db,"stocks",ID),ns);
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"transf-salida",producto:prod,cantidad:cant,direccion:"salida",notas:"Transferencia a TOTTUS TIENDA",manual:true,timestamp:serverTimestamp()});
+  // Notificar a TOTTUS TIENDA como llegada
+  await addDoc(collection(db,"llegadas"),{destino:"TOTTUS_TIENDA",producto:prod,cantidad:cant,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+  showAlert(al,`Transferencia registrada — ${cant} uds de ${prod} hacia TOTTUS TIENDA.`,false);
 };
 
 window.registrarMov=async function(){
@@ -191,12 +291,12 @@ window.registrarMov=async function(){
     ns[prod]+=cant;
   }
   await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto:prod,cantidad:cant,direccion:dir,notas:dir==="salida"?"Transferencia a TOTTUS TIENDA":"Entrada de stock",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto:prod,cantidad:cant,direccion:dir,notas:dir==="salida"?"Salida a TOTTUS TIENDA":"Entrada de stock",manual:true,timestamp:serverTimestamp()});
   showAlert(al,`${dir==="salida"?"-":"+"}${cant} uds de ${prod} registrado.${dir==="salida"?" Ahora presiona Despachado en el panel derecho.":""}`,false);
 };
 
 window.switchTab=function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["oc","mv"][i]===t));
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["oc","ts","mv"][i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.getElementById("tab-"+t).classList.add("active");
 };

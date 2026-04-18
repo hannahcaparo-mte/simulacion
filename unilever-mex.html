@@ -138,8 +138,9 @@ window.registrarMov=async function(){
   if(totalC+uds>184) await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock límite excedido",detalle:`Despacho de ${cajas} cj de ${prod} supera límite`,timestamp:serverTimestamp()});
   cs[prod]=(cs[prod]||0)+uds;
   await setDoc(cRef,cs);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"Despachado a CETLOG",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:"CETLOG",tipo:"orden-compra",producto:prod,cantidad:uds,direccion:"entrada",notas:"Recibido de UNILEVER MEX",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"Despachado a CETLOG",manual:true,timestamp:serverTimestamp()});
+  // Notificar a CETLOG como llegada pendiente de registrar
+  await addDoc(collection(db,"llegadas"),{destino:"CETLOG",producto:prod,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
   showAlert(al,`✓ Movimiento registrado. Ahora presiona "Despachado" en el panel derecho.`,false);
 };
 
