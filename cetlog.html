@@ -31,8 +31,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
       <div class="field"><label>Tipo</label>
         <select id="mvTipo">
-          <option value="orden-pedido">Orden de pedido (salida)</option>
-          <option value="orden-compra">Orden de compra (salida)</option>
+          <option value="orden-compra">Orden de compra</option>
         </select>
       </div>
       <div class="field"><label>Producto</label>
@@ -259,7 +258,9 @@ window.registrarMov=async function(){
   ns[prod]-=cant;
   await setDoc(doc(db,"stocks",ID),ns);
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto:prod,cantidad:cant,direccion:"salida",contraparte:cp,notas:"",manual:true,timestamp:serverTimestamp()});
-  showAlert(al,`-${cant} uds de ${prod} registrado. Ahora presiona Despachado en el panel derecho.`,false);
+  // Crear llegada para el destinatario
+  await addDoc(collection(db,"llegadas"),{destino:cp,producto:prod,cantidad:cant,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+  showAlert(al,`-${cant} uds de ${prod} registrado. Llegada notificada a ${cp==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}. Ahora presiona Despachado en el panel derecho.`,false);
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

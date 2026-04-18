@@ -23,6 +23,7 @@
   <div class="stock-grid" id="stockGrid"></div>
   <div class="total-bar" id="totalBar"></div>
   <div class="alert-banner" id="alertBanner"></div>
+  <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('op')">Orden de Pedido → CETLOG</button>
@@ -69,7 +70,7 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cajas</th><th>Destino</th><th>Estado</th></tr>
+        <tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Destino/Notas</th><th>Detalle</th></tr>
       </thead>
       <tbody id="histEmitBody">
         <tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr>
@@ -107,9 +108,14 @@ onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("time
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderIncoming(r);
 });
 
-// Órdenes emitidas por UNILEVER_PERU
-onSnapshot(query(collection(db,"pedidos"),where("origen","==",ID),orderBy("timestamp","desc")),s=>{
+// Órdenes emitidas por UNILEVER_PERU (movimientos propios)
+onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderHistEmit(r);
+});
+
+// Llegadas a CETLOG registradas (para mostrar en historial de UNILEVER PERU)
+onSnapshot(query(collection(db,"llegadas"),where("destino","==","CETLOG"),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderLlegadasCetlog(r);
 });
 
 function renderStock(){
@@ -167,18 +173,26 @@ function renderIncoming(orders){
 
 function renderHistEmit(rows){
   const b=document.getElementById("histEmitBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr>';return;}
-  const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG"};
+  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>';return;}
+  const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG",TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"};
   const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
   b.innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:#b4b2a9">${rows.length-i}</td>
     <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
     <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
-    <td>${r.producto}</td>
-    <td>${r.cantidad} cj</td>
-    <td>${labels[r.destino]||r.destino}</td>
-    <td><span class="badge ${r.estado}">${r.estado}</span></td>
+    <td>${r.producto||"—"}</td>
+    <td>${r.cantidad||"—"} ${r.unidad||"cj"}</td>
+    <td>${labels[r.destino]||r.contraparte||r.notas||"—"}</td>
+    <td style="font-size:12px;color:#888780">${r.notas||""}</td>
   </tr>`).join("");
+}
+
+function renderLlegadasCetlog(rows){
+  // Solo actualiza la sección de llegadas a CETLOG si existe en el DOM
+  const el=document.getElementById("cetlogLlegadas");
+  if(!el) return;
+  const pendientes=rows.filter(r=>r.estado!=="registrado");
+  el.textContent=pendientes.length>0?`📦 ${pendientes.length} llegada(s) de UNILEVER MEX pendiente(s) de registrar en CETLOG`:"";
 }
 
 function startTimer(oid,acceptedAt){
@@ -211,6 +225,7 @@ window.enviarOP=async function(){
   const uds=cajas*8;
   if((cetlogStock[prod]||0)<uds){showAlert(al,`Stock insuficiente en CETLOG para ${prod}.`,true);return;}
   await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",producto:prod,cantidad:cajas,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",producto:prod,cantidad:cajas,unidad:"cj",destino:"CETLOG",contraparte:"CETLOG",notas:`Orden de pedido a CETLOG → ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}`,timestamp:serverTimestamp()});
   showAlert(al,`Orden de pedido enviada a CETLOG — ${cajas} cj de ${prod} para ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}.`,false);
 };
 
@@ -221,6 +236,7 @@ window.enviarOC=async function(){
   const al=document.getElementById("ocAlert");
   if(!cajas||cajas<1) return;
   await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,unidad:"cj",destino:"UNILEVER_MEX",contraparte:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
   showAlert(al,`Orden de compra enviada a UNILEVER MEX — ${cajas} cj de ${prod}.`,false);
 };
 
