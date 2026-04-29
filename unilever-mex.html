@@ -9,36 +9,33 @@
 <body>
 <div class="topbar">
   <div>
-    <div class="topbar-title" style="color:#185FA5;">🏭 UNILEVER MEX</div>
-    <div class="topbar-sub">Fabricante · Despacha a CETLOG</div>
+    <div class="topbar-title" style="color:#185FA5;">🏭 UNILEVER MEXICO</div>
+    <div class="topbar-sub">Fabricante</div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <p class="section-title">Mi stock</p>
+  <p class="section-title">Stock disponible (en unidades)</p>
   <div class="stock-section">
     <div>
       <div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
     </div>
-    <div class="donut-card" id="donutCard"></div>
-  </div>
-
-  <p class="section-title">Registrar movimiento manual</p>
+  <p class="section-title">Registrar salidas de inventario</p>
   <div class="card">
-    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando tengas un pedido aceptado: <strong>①</strong> Registra los productos que despachas → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue una órden de compra: 1) Despacha físicamente los productos, 2) Registra la salida de inventario, 3) Presiona "Despachado" en el panel derecho.</p>
     <div id="mvPicker"></div>
-    <button class="btn primary" onclick="registrarMov()">Registrar movimiento</button>
+    <button class="btn primary" onclick="registrarMov()">Registrar salida</button>
     <div class="alert-banner" id="mvAlert"></div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cajas</th><th>Dirección</th><th>Notas</th></tr></thead>
-      <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
+      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cantidad</th><th>Destino</th><th>Detalle</th></tr></thead>
+      <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr></tbody>
     </table>
   </div>
 
