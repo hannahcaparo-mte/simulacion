@@ -10,41 +10,40 @@
 <div class="topbar">
   <div>
     <div class="topbar-title" style="color:#3B6D11;">🌿 UNILEVER PERÚ</div>
-    <div class="topbar-sub">Coordinador local · Ve stock de CETLOG</div>
+    <div class="topbar-sub">  Coordinador local</div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <div class="info-box">Stock de CETLOG (solo lectura). Si hay stock → envía Orden de Pedido a CETLOG. Si no hay → envía Orden de Compra a UNILEVER MEX.</div>
+  <div class="info-box"> 1) Recibes una orden de compra, 2)Si hay stock, generas una orden de pedido para CETLOG (si no hay pide a UNILEVER MEXICO), 3) Cuando recibas la notificación de despacho de CETLOG, presiona en "Atendido" en el panel derecho.</div>
 
-  <p class="section-title">Stock de CETLOG</p>
+  <p class="section-title">Stock disponible en CETLOG (en unidades)</p>
   <div class="stock-section">
     <div>
       <div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
     </div>
-    <div class="donut-card" id="donutCard"></div>
   </div>
   <div class="alert-banner" id="alertBanner"></div>
   <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
-
+  <p class="section-title">Registrar órdenes y movimientos</p>
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('op')">Orden de Pedido → CETLOG</button>
-    <button class="tab" onclick="switchTab('oc')">Orden de Compra → UNILEVER MEX</button>
+    <button class="tab active" onclick="switchTab('op')">Orden de Pedido para CETLOG</button>
+    <button class="tab" onclick="switchTab('oc')">Orden de Compra a UNILEVER MEXICO</button>
   </div>
 
   <div class="tab-content active" id="tab-op">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Hay stock en CETLOG. Pídele que despache al comprador.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si hay stock en CETLOG, pídele que despache al comprador.</p>
       <div id="opPicker"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div class="field"><label>Destino final</label>
           <select id="opDest"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG_CD">YICHANG CD</option></select>
         </div>
         <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn" style="width:100%;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="enviarOP()">Enviar orden de pedido</button>
+          <button class="btn" style="width:100%;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="enviarOP()">Enviar</button>
         </div>
       </div>
       <div class="alert-banner" id="opAlert"></div>
@@ -53,19 +52,18 @@
 
   <div class="tab-content" id="tab-oc">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">No hay stock en CETLOG. Pide producción a UNILEVER MEX.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele stock a UNILEVER MEXICO.</p>
       <div id="ocPicker"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-        <div class="field"><label>Notas (opcional)</label><input type="text" id="ocNotas" placeholder="Motivo"/></div>
         <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar orden de compra</button>
+          <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar</button>
         </div>
       </div>
       <div class="alert-banner" id="ocAlert"></div>
     </div>
   </div>
 
-  <p class="section-title">Notificaciones de despachos de CETLOG</p>
+  <p class="section-title">Registro de despachos de CETLOG</p>
   <div class="card" id="dispatchNotifsCard">
     <div id="dispatchNotifs"><p style="font-size:12px;color:#b4b2a9;text-align:center;padding:0.5rem;">Sin despachos confirmados aún.</p></div>
   </div>
@@ -73,7 +71,7 @@
   <p class="section-title">Historial de órdenes emitidas</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Productos</th><th>Destino</th><th>Notas</th></tr></thead>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Productos</th><th>Destino</th><th>Detalles</th></tr></thead>
       <tbody id="histEmitBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr></tbody>
     </table>
   </div>
@@ -83,8 +81,8 @@
 
 <div class="orders-panel">
   <p class="section-title">Órdenes de compra recibidas</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD y YICHANG CD · Timer 3 min</p>
-  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p></div>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD y YICHANG CD</p>
+  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes aún.</p></div>
 </div>
 
 <script src="shared-ui.js"></script>
