@@ -90,3 +90,20 @@ tbody tr:hover { background: #fafaf8; }
   .with-panel { margin-right: 0; }
   .orders-panel { display: none; }
 }
+
+/* Stock + Donut layout */
+.stock-section { display: grid; grid-template-columns: 1fr 240px; gap: 16px; margin-bottom: 1rem; align-items: start; }
+.donut-card { background: #fff; border: 1px solid #e5e4de; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; }
+.donut-title { font-size: 11px; color: #888780; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+.donut-svg { width: 100%; max-width: 200px; }
+.donut-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; font-size: 11px; justify-content: center; }
+.donut-legend-item { display: flex; align-items: center; gap: 4px; color: #5f5e5a; }
+.donut-legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+@media (max-width: 900px) { .stock-section { grid-template-columns: 1fr; } .donut-svg { max-width: 220px; } }
+
+/* Multi-product picker */
+.product-row { display: grid; grid-template-columns: 1.5fr 1fr 32px; gap: 8px; margin-bottom: 8px; align-items: center; }
+.product-row .remove-btn { width: 32px; height: 32px; border: 1px solid #d3d1c7; border-radius: 6px; background: #fff; color: #888780; font-size: 16px; cursor: pointer; padding: 0; }
+.product-row .remove-btn:hover { background: #FCEBEB; color: #A32D2D; border-color: #A32D2D; }
+.add-product-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #185FA5; background: none; border: 1px dashed #B5D4F4; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; cursor: pointer; }
+.add-product-btn:hover { background: #E6F1FB; }

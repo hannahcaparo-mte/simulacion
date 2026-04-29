@@ -16,22 +16,21 @@
 </div>
 <div class="with-panel">
 <div class="page">
+
   <p class="section-title">Mi stock</p>
-  <div class="stock-grid" id="stockGrid"></div>
-  <div class="total-bar" id="totalBar"></div>
+  <div class="stock-section">
+    <div>
+      <div class="stock-grid" id="stockGrid"></div>
+      <div class="total-bar" id="totalBar"></div>
+    </div>
+    <div class="donut-card" id="donutCard"></div>
+  </div>
 
   <p class="section-title">Registrar movimiento manual</p>
   <div class="card">
-    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando tengas un pedido aceptado: <strong>1)</strong> Registra aquí el movimiento → <strong>2)</strong> Presiona "Despachado" en el panel derecho.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-      <div class="field"><label>Producto</label>
-        <select id="mvProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-      </div>
-      <div class="field"><label>Cajas</label><input type="number" id="mvCant" min="1" value="1"/></div>
-      <div class="field" style="display:flex;align-items:flex-end;">
-        <button class="btn primary" style="width:100%" onclick="registrarMov()">Registrar movimiento</button>
-      </div>
-    </div>
+    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando tengas un pedido aceptado: <strong>①</strong> Registra los productos que despachas → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+    <div id="mvPicker"></div>
+    <button class="btn primary" onclick="registrarMov()">Registrar movimiento</button>
     <div class="alert-banner" id="mvAlert"></div>
   </div>
 
@@ -42,6 +41,7 @@
       <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
     </table>
   </div>
+
 </div>
 </div>
 
@@ -51,6 +51,7 @@
   <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p></div>
 </div>
 
+<script src="shared-ui.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
@@ -61,6 +62,8 @@ const INIT={Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96};
 let stock={...INIT}, timers={};
 document.getElementById("connStatus").textContent="✓ Conectado";
 
+const mvPicker = window.createPicker("mvPicker","Cajas");
+
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
 onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{const r=[];s.forEach(d=>r.push({id:d.id,...d.data()}));renderHist(r);});
@@ -70,6 +73,7 @@ function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   document.getElementById("stockGrid").innerHTML=PRODS.map(p=>`<div class="stock-card ok"><div class="product-name">${p}</div><div class="stock-num ok">${stock[p]||0}</div><div class="bar-wrap"><div class="bar" style="width:100%;background:#1D9E75"></div></div></div>`).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:100%;background:#1D9E75"></div></div><span class="total-bar-num" style="color:#0F6E56">${total} cajas</span>`;
+  window.renderDonut("donutCard", stock, PRODS, null, "Distribución");
 }
 
 function renderHist(rows){
@@ -83,25 +87,16 @@ function renderOrders(orders){
   if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p>';return;}
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="completado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} cj</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido"><div class="order-title">${o.producto} — ${o.cantidad} cj</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
-    if(o.estado==="rechazado") return `<div class="order-item completado"><div class="order-title">${o.producto} — ${o.cantidad} cj</div><div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
-    if(o.estado==="en-proceso"){
-      if(!timers[o.id]) startTimer(o.id,o.timestamp);
-      return `<div class="order-item en-proceso" id="ord-${o.id}">
-        <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
-        <div class="order-detail">De: UNILEVER PERÚ · <span class="badge orden-compra">En proceso</span></div>
-        <div class="timer" id="tmr-${o.id}">3:00</div>
-        <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
-        <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
-      </div>`;
-    }
+    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad}`).join(", ") : `${o.producto} ×${o.cantidad}`;
+    if(o.estado==="completado") return `<div class="order-item completado"><div class="order-title">${itemsTxt}</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
+    if(o.estado==="vencido") return `<div class="order-item vencido"><div class="order-title">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
+    if(o.estado==="rechazado") return `<div class="order-item completado"><div class="order-title">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
     if(!timers[o.id]) startTimer(o.id,o.timestamp);
     return `<div class="order-item pendiente" id="ord-${o.id}">
-      <div class="order-title">${o.producto} — ${o.cantidad} cj</div>
+      <div class="order-title">${itemsTxt}</div>
       <div class="order-detail">De: UNILEVER PERÚ · ${t}<br>${o.notas?`<em>${o.notas}</em>`:""}</div>
       <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
+      <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
       <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
     </div>`;
   }).join("");
@@ -109,7 +104,7 @@ function renderOrders(orders){
 
 function startTimer(oid,acceptedAt){
   if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000; // uses arrival timestamp
+  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
@@ -119,29 +114,31 @@ function startTimer(oid,acceptedAt){
   },500);
 }
 
-// aceptar/rechazar removed — timer starts automatically on arrival
 window.marcarDespachado=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
 window.registrarMov=async function(){
-  const prod=document.getElementById("mvProd").value;
-  const cajas=parseInt(document.getElementById("mvCant").value);
+  const items = mvPicker.getValid();
   const al=document.getElementById("mvAlert");
-  if(!cajas||cajas<1) return;
-  if((stock[prod]||0)<cajas){showAlert(al,"Stock insuficiente.",true);return;}
-  const ns={...stock}; ns[prod]-=cajas;
+  if(!items.length){showAlert(al,"Agrega al menos un producto con cantidad.",true);return;}
+  const ns={...stock};
+  for(const it of items){
+    if((ns[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
+    ns[it.producto]-=it.cantidad;
+  }
   await setDoc(doc(db,"stocks",ID),ns);
   const cRef=doc(db,"stocks","CETLOG");
   const cSnap=await getDoc(cRef);
   const cs=cSnap.exists()?cSnap.data():{Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
-  const uds=cajas*8;
-  const totalC=Object.values(cs).reduce((a,v)=>a+v,0);
-  if(totalC+uds>184) await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock límite excedido",detalle:`Despacho de ${cajas} cj de ${prod} supera límite`,timestamp:serverTimestamp()});
-  cs[prod]=(cs[prod]||0)+uds;
-  await setDoc(cRef,cs);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"Despachado a CETLOG",manual:true,timestamp:serverTimestamp()});
-  // Notificar a CETLOG como llegada pendiente de registrar
-  await addDoc(collection(db,"llegadas"),{destino:"CETLOG",producto:prod,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  showAlert(al,`✓ Movimiento registrado. Ahora presiona "Despachado" en el panel derecho.`,false);
+  let totalC=Object.values(cs).reduce((a,v)=>a+v,0);
+  for(const it of items){
+    const uds=it.cantidad*8;
+    if(totalC+uds>184) await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock límite excedido",detalle:`Despacho de ${it.cantidad} cj de ${it.producto} supera límite`,timestamp:serverTimestamp()});
+    totalC+=uds;
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"salida",notas:"Despachado a CETLOG",manual:true,timestamp:serverTimestamp()});
+    await addDoc(collection(db,"llegadas"),{destino:"CETLOG",producto:it.producto,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+  }
+  mvPicker.reset();
+  showAlert(al,`✓ ${items.length} producto(s) registrados. Ahora presiona "Despachado" en el panel derecho.`,false);
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

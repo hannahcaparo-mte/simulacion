@@ -18,8 +18,13 @@
 <div class="page">
 
   <p class="section-title">Mi stock</p>
-  <div class="stock-grid" id="stockGrid"></div>
-  <div class="total-bar" id="totalBar"></div>
+  <div class="stock-section">
+    <div>
+      <div class="stock-grid" id="stockGrid"></div>
+      <div class="total-bar" id="totalBar"></div>
+    </div>
+    <div class="donut-card" id="donutCard"></div>
+  </div>
   <div class="alert-banner" id="alertBanner"></div>
 
   <div class="tabs">
@@ -30,61 +35,42 @@
   <div class="tab-content active" id="tab-oc">
     <div class="card">
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock, pide a UNILEVER PERÚ.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-        <div class="field"><label>Producto</label>
-          <select id="ocProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-        </div>
-        <div class="field"><label>Cajas a pedir</label><input type="number" id="ocCant" min="1" value="1"/></div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar orden de compra</button>
-        </div>
-      </div>
-      <div class="alert-banner" id="ocAlert" style="margin-top:10px;margin-bottom:0"></div>
+      <div id="ocPicker"></div>
+      <button class="btn primary" onclick="enviarOC()" style="margin-top:8px;">Enviar orden de compra</button>
+      <div class="alert-banner" id="ocAlert"></div>
     </div>
   </div>
 
   <div class="tab-content" id="tab-dt">
     <div class="card">
-      <div class="info-box" style="margin-bottom:12px;">🧑‍💼 DON TITO no tiene computadora. Cuando llegue a comprarte, regístralo aquí. Se descuenta del stock como venta.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-        <div class="field"><label>Producto</label>
-          <select id="dtProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-        </div>
-        <div class="field"><label>Unidades vendidas</label><input type="number" id="dtCant" min="1" value="1"/></div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn" style="width:100%;background:#EAF3DE;color:#27500A;border-color:#97C459" onclick="venderDonTito()">Registrar venta a DON TITO</button>
-        </div>
-      </div>
-      <div class="alert-banner" id="dtAlert" style="margin-top:10px;margin-bottom:0"></div>
+      <div class="info-box" style="margin-bottom:12px;">🧑‍💼 DON TITO no tiene computadora. Cuando llegue a comprarte, regístralo aquí.</div>
+      <div id="dtPicker"></div>
+      <button class="btn" style="background:#EAF3DE;color:#27500A;border-color:#97C459;margin-top:8px;" onclick="venderDonTito()">Registrar venta a DON TITO</button>
+      <div class="alert-banner" id="dtAlert"></div>
     </div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr>
-      </thead>
-      <tbody id="histBody">
-        <tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>
-      </tbody>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr></thead>
+      <tbody id="histBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
     </table>
   </div>
 
 </div>
 </div>
 
-<!-- PANEL DERECHO: Llegadas de CETLOG -->
 <div class="orders-panel">
   <p class="section-title">Llegadas de CETLOG</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Presiona "Registrar llegada" para confirmar y sumar al stock</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Presiona "Registrar llegada" para sumar al stock</p>
   <div id="llegadasContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin llegadas.</p></div>
 </div>
 
+<script src="shared-ui.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
 const ID="YICHANG_CD", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
@@ -92,6 +78,9 @@ const INIT={Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40}, LIMIT=120;
 let stock={...INIT};
 
 document.getElementById("connStatus").textContent="✓ Conectado";
+
+const ocPicker = window.createPicker("ocPicker","Cajas");
+const dtPicker = window.createPicker("dtPicker","Unidades");
 
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
@@ -112,6 +101,7 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
+  window.renderDonut("donutCard", stock, PRODS, LIMIT, "YICHANG CD");
   const b=document.getElementById("alertBanner");
   if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (120 uds).";}else b.className="alert-banner";
 }
@@ -119,7 +109,7 @@ function renderStock(){
 function renderHist(rows){
   const b=document.getElementById("histBody");
   if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>';return;}
-  const tipos={"venta":"Venta a DON TITO","orden-compra":"Orden de compra","llegada":"Llegada de stock"};
+  const tipos={"venta":"Venta a DON TITO","orden-compra":"Orden de compra"};
   b.innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:#b4b2a9">${rows.length-i}</td>
     <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
@@ -136,14 +126,11 @@ function renderLlegadas(rows){
   if(!rows.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin llegadas.</p>';return;}
   c.innerHTML=rows.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de CETLOG</div>
-      <div class="order-detail">${t} · <span class="badge registrado">Registrado</span></div></div>`;
+    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de CETLOG</div><div class="order-detail">${t} · <span class="badge registrado">Registrado</span></div></div>`;
     return `<div class="order-item pendiente" style="margin-bottom:8px;" id="ll-${o.id}">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
       <div class="order-detail">De: CETLOG · ${t}</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">Presiona "Registrar llegada" para sumar al stock y confirmar.</p>
-      <button class="btn success" style="width:100%;margin-top:4px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">✓ Registrar llegada</button>
+      <button class="btn success" style="width:100%;margin-top:6px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">✓ Registrar llegada</button>
     </div>`;
   }).join("");
 }
@@ -153,34 +140,41 @@ window.registrarLlegada=async function(id,producto,cantidad){
   const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
   if(total+cantidad>LIMIT){
     await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${cantidad} uds de ${producto} supera ${LIMIT} uds`,timestamp:serverTimestamp()});
-    alert(`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`); return;
+    alert(`⚠ Supera el límite total. Penalización registrada.`); return;
   }
   ns[producto]=(ns[producto]||0)+cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",notas:"Llegada registrada de CETLOG",manual:true,timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",notas:"Llegada registrada",manual:true,timestamp:serverTimestamp()});
   await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
 };
 
 window.enviarOC=async function(){
-  const prod=document.getElementById("ocProd").value;
-  const cajas=parseInt(document.getElementById("ocCant").value);
+  const items = ocPicker.getValid();
   const al=document.getElementById("ocAlert");
-  if(!cajas||cajas<1) return;
-  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_PERU",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,direccion:"salida",notas:"OC enviada a UNILEVER PERÚ",manual:true,timestamp:serverTimestamp()});
-  showAlert(al,`Orden de compra enviada — ${cajas} cj de ${prod}.`,false);
+  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
+  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_PERU",tipo:"orden-compra",items,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+  for(const it of items){
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"salida",notas:"OC enviada a UNILEVER PERÚ",manual:true,timestamp:serverTimestamp()});
+  }
+  ocPicker.reset();
+  showAlert(al,`Orden de compra enviada (${items.length} producto(s)).`,false);
 };
 
 window.venderDonTito=async function(){
-  const prod=document.getElementById("dtProd").value;
-  const cant=parseInt(document.getElementById("dtCant").value);
+  const items = dtPicker.getValid();
   const al=document.getElementById("dtAlert");
-  if(!cant||cant<1) return;
-  if((stock[prod]||0)<cant){showAlert(al,"Stock insuficiente para esta venta.",true);return;}
-  const ns={...stock}; ns[prod]-=cant;
+  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
+  const ns={...stock};
+  for(const it of items){
+    if((ns[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
+    ns[it.producto]-=it.cantidad;
+  }
   await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"venta",producto:prod,cantidad:cant,direccion:"salida",notas:"Venta a DON TITO",manual:true,timestamp:serverTimestamp()});
-  showAlert(al,`Venta registrada — ${cant} uds de ${prod} a DON TITO.`,false);
+  for(const it of items){
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"venta",producto:it.producto,cantidad:it.cantidad,direccion:"salida",notas:"Venta a DON TITO",manual:true,timestamp:serverTimestamp()});
+  }
+  dtPicker.reset();
+  showAlert(al,`✓ Venta registrada (${items.length} producto(s)) a DON TITO.`,false);
 };
 
 window.switchTab=function(t){

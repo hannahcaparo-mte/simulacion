@@ -10,7 +10,7 @@
 <div class="topbar">
   <div>
     <div class="topbar-title" style="color:#3B6D11;">🌿 UNILEVER PERÚ</div>
-    <div class="topbar-sub">Coordinador local · Ve stock de CETLOG · Sin stock propio</div>
+    <div class="topbar-sub">Coordinador local · Ve stock de CETLOG</div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
@@ -20,8 +20,13 @@
   <div class="info-box">Stock de CETLOG (solo lectura). Si hay stock → envía Orden de Pedido a CETLOG. Si no hay → envía Orden de Compra a UNILEVER MEX.</div>
 
   <p class="section-title">Stock de CETLOG</p>
-  <div class="stock-grid" id="stockGrid"></div>
-  <div class="total-bar" id="totalBar"></div>
+  <div class="stock-section">
+    <div>
+      <div class="stock-grid" id="stockGrid"></div>
+      <div class="total-bar" id="totalBar"></div>
+    </div>
+    <div class="donut-card" id="donutCard"></div>
+  </div>
   <div class="alert-banner" id="alertBanner"></div>
   <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
 
@@ -33,11 +38,8 @@
   <div class="tab-content active" id="tab-op">
     <div class="card">
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Hay stock en CETLOG. Pídele que despache al comprador.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="field"><label>Producto</label>
-          <select id="opProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-        </div>
-        <div class="field"><label>Cajas</label><input type="number" id="opCant" min="1" value="1"/></div>
+      <div id="opPicker"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div class="field"><label>Destino final</label>
           <select id="opDest"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG_CD">YICHANG CD</option></select>
         </div>
@@ -52,12 +54,9 @@
   <div class="tab-content" id="tab-oc">
     <div class="card">
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">No hay stock en CETLOG. Pide producción a UNILEVER MEX.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="field"><label>Producto</label>
-          <select id="ocProd"><option>Rojo</option><option>Azul</option><option>Rosado</option><option>Blanco</option><option>Amarillo</option></select>
-        </div>
-        <div class="field"><label>Cajas</label><input type="number" id="ocCant" min="1" value="1"/></div>
-        <div class="field"><label>Notas</label><input type="text" id="ocNotas" placeholder="Motivo"/></div>
+      <div id="ocPicker"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+        <div class="field"><label>Notas (opcional)</label><input type="text" id="ocNotas" placeholder="Motivo"/></div>
         <div class="field" style="display:flex;align-items:flex-end;">
           <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar orden de compra</button>
         </div>
@@ -66,32 +65,32 @@
     </div>
   </div>
 
+  <p class="section-title">Notificaciones de despachos de CETLOG</p>
+  <div class="card" id="dispatchNotifsCard">
+    <div id="dispatchNotifs"><p style="font-size:12px;color:#b4b2a9;text-align:center;padding:0.5rem;">Sin despachos confirmados aún.</p></div>
+  </div>
+
   <p class="section-title">Historial de órdenes emitidas</p>
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Destino/Notas</th><th>Detalle</th></tr>
-      </thead>
-      <tbody id="histEmitBody">
-        <tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr>
-      </tbody>
+      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Productos</th><th>Destino</th><th>Notas</th></tr></thead>
+      <tbody id="histEmitBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr></tbody>
     </table>
   </div>
 
 </div>
 </div>
 
-<!-- PANEL DERECHO: Órdenes de compra recibidas con timer -->
 <div class="orders-panel">
   <p class="section-title">Órdenes de compra recibidas</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD y YICHANG CD · Timer de 3 min para responder</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD y YICHANG CD · Timer 3 min</p>
   <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p></div>
 </div>
 
+<script src="shared-ui.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, onSnapshot, addDoc, updateDoc, serverTimestamp, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
 const ID="UNILEVER_PERU", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
@@ -101,21 +100,22 @@ let timers={};
 
 document.getElementById("connStatus").textContent="✓ Conectado";
 
+const opPicker = window.createPicker("opPicker","Cajas");
+const ocPicker = window.createPicker("ocPicker","Cajas");
+
 onSnapshot(doc(db,"stocks","CETLOG"),s=>{if(s.exists()){cetlogStock=s.data();renderStock();}});
 
-// Órdenes recibidas (de TOTTUS_CD y YICHANG_CD)
 onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderIncoming(r);
 });
 
-// Órdenes emitidas por UNILEVER_PERU (movimientos propios)
 onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderHistEmit(r);
 });
 
-// Llegadas a CETLOG registradas (para mostrar en historial de UNILEVER PERU)
-onSnapshot(query(collection(db,"llegadas"),where("destino","==","CETLOG"),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderLlegadasCetlog(r);
+// Listen for CETLOG dispatch notifications (sent to UNILEVER_PERU)
+onSnapshot(query(collection(db,"despachos"),where("destinoNotif","==",ID),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderDispatchNotifs(r);
 });
 
 function renderStock(){
@@ -129,6 +129,7 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${pp}%;background:${bc}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Total CETLOG</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${CETLOG_LIMIT} uds</span>`;
+  window.renderDonut("donutCard", cetlogStock, PRODS, CETLOG_LIMIT, "CETLOG");
   const b=document.getElementById("alertBanner");
   const zeros=PRODS.filter(p=>(cetlogStock[p]||0)===0);
   if(zeros.length){b.className="alert-banner error show";b.textContent="Sin stock en CETLOG: "+zeros.join(", ");}
@@ -141,32 +142,15 @@ function renderIncoming(orders){
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const orig={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.origen]||o.origen;
-    if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj de ${orig}</div>
-      <div class="order-detail">${t} · <span class="badge completado">Atendido</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj</div>
-      <div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
-    if(o.estado==="rechazado") return `<div class="order-item completado" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj</div>
-      <div class="order-detail"><span class="badge vencido">Rechazado</span></div></div>`;
-    if(o.estado==="en-proceso"){
-      if(!timers[o.id]) startTimer(o.id,o.timestamp);
-      return `<div class="order-item en-proceso" id="ord-${o.id}" style="margin-bottom:8px;">
-        <div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} cj de ${orig}</div>
-        <div class="order-detail"><span class="badge orden-compra">En proceso</span></div>
-        <div class="timer" id="tmr-${o.id}">3:00</div>
-        <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Usa los formularios de arriba para responder (OP a CETLOG u OC a MEX)</p>
-        <button class="btn success" style="width:100%;margin-top:4px" onclick="marcarAtendido('${o.id}')">✓ Atendido</button>
-      </div>`;
-    }
-    // pendiente — timer starts immediately
+    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${o.producto} ×${o.cantidad}cj`;
+    if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} de ${orig}</div><div class="order-detail">${t} · <span class="badge completado">Atendido</span></div></div>`;
+    if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
     if(!timers[o.id]) startTimer(o.id,o.timestamp);
     return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;color:#A32D2D;">● ${o.producto} — ${o.cantidad} cj de ${orig}</div>
+      <div class="order-title" style="font-size:13px;color:#A32D2D;">● ${itemsTxt} de ${orig}</div>
       <div class="order-detail">${t} · <span class="badge orden-compra">Orden de compra</span></div>
       <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Usa los formularios de arriba para responder, luego presiona Atendido</p>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Responde con OP a CETLOG u OC a MEX, luego pulsa Atendido</p>
       <button class="btn success" style="width:100%;margin-top:4px" onclick="marcarAtendido('${o.id}')">✓ Atendido</button>
     </div>`;
   }).join("");
@@ -174,70 +158,75 @@ function renderIncoming(orders){
 
 function renderHistEmit(rows){
   const b=document.getElementById("histEmitBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>';return;}
+  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr>';return;}
   const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG",TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"};
   const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
-  b.innerHTML=rows.map((r,i)=>`<tr>
-    <td style="color:#b4b2a9">${rows.length-i}</td>
-    <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
-    <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
-    <td>${r.producto||"—"}</td>
-    <td>${r.cantidad||"—"} ${r.unidad||"cj"}</td>
-    <td>${labels[r.destino]||r.contraparte||r.notas||"—"}</td>
-    <td style="font-size:12px;color:#888780">${r.notas||""}</td>
-  </tr>`).join("");
+  b.innerHTML=rows.map((r,i)=>{
+    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${r.producto||"—"} ×${r.cantidad||"—"}`;
+    return `<tr>
+      <td style="color:#b4b2a9">${rows.length-i}</td>
+      <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
+      <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
+      <td>${itemsTxt}</td>
+      <td>${labels[r.destino]||r.destino||"—"}</td>
+      <td style="font-size:12px;color:#888780">${r.notas||""}</td>
+    </tr>`;
+  }).join("");
 }
 
-function renderLlegadasCetlog(rows){
-  // Solo actualiza la sección de llegadas a CETLOG si existe en el DOM
-  const el=document.getElementById("cetlogLlegadas");
-  if(!el) return;
-  const pendientes=rows.filter(r=>r.estado!=="registrado");
-  el.textContent=pendientes.length>0?`📦 ${pendientes.length} llegada(s) de UNILEVER MEX pendiente(s) de registrar en CETLOG`:"";
+function renderDispatchNotifs(rows){
+  const c=document.getElementById("dispatchNotifs");
+  if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:0.5rem;">Sin despachos confirmados aún.</p>';return;}
+  c.innerHTML=rows.slice(0,5).map(r=>{
+    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[r.destinoFinal]||r.destinoFinal;
+    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${r.producto} ×${r.cantidad}cj`;
+    return `<div style="padding:8px 10px;border-left:3px solid #1D9E75;background:#E1F5EE;margin-bottom:6px;border-radius:4px;font-size:13px;">
+      <strong>📦 CETLOG despachó:</strong> ${itemsTxt} → ${dest}
+      <div style="font-size:11px;color:#0F6E56;margin-top:2px;">${t} · Puedes pausar tu timer si tenías una orden pendiente.</div>
+    </div>`;
+  }).join("");
 }
 
 function startTimer(oid,acceptedAt){
   if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000; // uses arrival timestamp
+  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
-    if(rem<=0){
-      clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";
-      await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});
-      await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden de compra no atendida en 3 min",timestamp:serverTimestamp()});
-      return;
-    }
+    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden de compra no atendida en 3 min",timestamp:serverTimestamp()});return;}
     const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
     el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(rem<60000?" warning":"");
   },500);
 }
 
-// aceptar/rechazar removed — timer starts automatically on arrival
 window.marcarAtendido=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
 
 window.enviarOP=async function(){
-  const prod=document.getElementById("opProd").value;
-  const cajas=parseInt(document.getElementById("opCant").value);
+  const items = opPicker.getValid();
   const dest=document.getElementById("opDest").value;
   const al=document.getElementById("opAlert");
-  if(!cajas||cajas<1) return;
-  const uds=cajas*8;
-  if((cetlogStock[prod]||0)<uds){showAlert(al,`Stock insuficiente en CETLOG para ${prod}.`,true);return;}
-  await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",producto:prod,cantidad:cajas,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",producto:prod,cantidad:cajas,unidad:"cj",destino:"CETLOG",contraparte:"CETLOG",notas:`Orden de pedido a CETLOG → ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}`,timestamp:serverTimestamp()});
-  showAlert(al,`Orden de pedido enviada a CETLOG — ${cajas} cj de ${prod} para ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}.`,false);
+  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
+  // Validate stock
+  for(const it of items){
+    if((cetlogStock[it.producto]||0)<it.cantidad*8){showAlert(al,`Stock insuficiente en CETLOG para ${it.producto}.`,true);return;}
+  }
+  await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",items,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",items,destino:"CETLOG",notas:`Para ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}`,timestamp:serverTimestamp()});
+  opPicker.reset();
+  showAlert(al,`Orden de pedido enviada a CETLOG (${items.length} producto(s)).`,false);
 };
 
 window.enviarOC=async function(){
-  const prod=document.getElementById("ocProd").value;
-  const cajas=parseInt(document.getElementById("ocCant").value);
+  const items = ocPicker.getValid();
   const notas=document.getElementById("ocNotas").value;
   const al=document.getElementById("ocAlert");
-  if(!cajas||cajas<1) return;
-  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",producto:prod,cantidad:cajas,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:prod,cantidad:cajas,unidad:"cj",destino:"UNILEVER_MEX",contraparte:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
-  showAlert(al,`Orden de compra enviada a UNILEVER MEX — ${cajas} cj de ${prod}.`,false);
+  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
+  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",items,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
+  ocPicker.reset();
+  document.getElementById("ocNotas").value="";
+  showAlert(al,`Orden de compra enviada a UNILEVER MEX (${items.length} producto(s)).`,false);
 };
 
 window.switchTab=function(t){
