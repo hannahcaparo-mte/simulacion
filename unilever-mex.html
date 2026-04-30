@@ -17,25 +17,27 @@
 <div class="with-panel">
 <div class="page">
 
-  <p class="section-title">Stock disponible (en unidades)</p>
-  <div class="stock-section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:1.5rem;">
     <div>
+      <p class="section-title">Stock disponible (en unidades)</p>
       <div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
     </div>
-  </div>
-  <p class="section-title">Registrar salidas de inventario</p>
-  <div class="card">
-    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue una órden de compra: 1) Despacha físicamente los productos, 2) Registra la salida de inventario, 3) Presiona "Despachado" en el panel derecho.</p>
-    <div id="mvPicker"></div>
-    <button class="btn primary" onclick="registrarMov()">Registrar salida</button>
-    <div class="alert-banner" id="mvAlert"></div>
+    <div>
+      <p class="section-title">Registrar salidas de inventario</p>
+      <div class="card" style="margin-bottom:0">
+        <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue una orden de compra: <strong>①</strong> Registra la salida en cajas (1 caja = 8 uds) → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+        <div id="mvPicker"></div>
+        <button class="btn primary" onclick="registrarMov()" style="margin-top:8px;">Registrar salida</button>
+        <div class="alert-banner" id="mvAlert"></div>
+      </div>
+    </div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cantidad</th><th>Destino</th><th>Detalle</th></tr></thead>
+      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cajas</th><th>Unidades descontadas</th><th>Detalle</th></tr></thead>
       <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr></tbody>
     </table>
   </div>
@@ -70,14 +72,14 @@ onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("time
 function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   document.getElementById("stockGrid").innerHTML=PRODS.map(p=>`<div class="stock-card ok"><div class="product-name">${p}</div><div class="stock-num ok">${stock[p]||0}</div><div class="bar-wrap"><div class="bar" style="width:100%;background:#1D9E75"></div></div></div>`).join("");
-  document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:100%;background:#1D9E75"></div></div><span class="total-bar-num" style="color:#0F6E56">${total} cajas</span>`;
+  document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:100%;background:#1D9E75"></div></div><span class="total-bar-num" style="color:#0F6E56">${total} unidades</span>`;
   window.renderDonut("donutCard", stock, PRODS, null, "Distribución");
 }
 
 function renderHist(rows){
   const b=document.getElementById("histBody");
   if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
-  b.innerHTML=rows.map((r,i)=>`<tr><td style="color:#b4b2a9">${rows.length-i}</td><td style="color:#888780">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td><td>${r.producto}</td><td style="font-weight:500">${r.direccion==="salida"?"-":"+"}${r.cantidad} cj</td><td>${r.direccion==="salida"?"Salida → CETLOG":"Entrada"}</td><td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
+  b.innerHTML=rows.map((r,i)=>`<tr><td style="color:#b4b2a9">${rows.length-i}</td><td style="color:#888780">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td><td>${r.producto}</td><td style="font-weight:500;color:#A32D2D">-${r.cantidad} cj</td><td style="color:#A32D2D">-${r.cantidad*8} uds</td><td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
 }
 
 function renderOrders(orders){

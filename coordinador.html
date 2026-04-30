@@ -10,7 +10,15 @@
     .pen-card { background: #fff; border: 1px solid #e5e4de; border-radius: 10px; padding: 12px; text-align: center; }
     .pen-name { font-size: 11px; color: #888780; margin-bottom: 4px; }
     .pen-count { font-size: 20px; font-weight: 500; color: #A32D2D; }
-    .companies-charts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; margin-bottom: 1.5rem; }
+    .companies-charts { display: grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+    .company-row { display:grid; grid-template-columns: 160px 1fr 160px; gap:16px; align-items:center; background:#fff; border:1px solid #e5e4de; border-radius:12px; padding:14px 16px; }
+    .company-row-name { font-size:14px; font-weight:500; }
+    .company-row-stocks { display:flex; gap:8px; flex-wrap:wrap; }
+    .stock-pill { display:flex; flex-direction:column; align-items:center; background:#f5f5f3; border-radius:8px; padding:6px 10px; min-width:52px; }
+    .stock-pill-label { font-size:10px; color:#888780; margin-bottom:2px; }
+    .stock-pill-val { font-size:15px; font-weight:500; }
+    .stock-pill-val.ok { color:#0F6E56; } .stock-pill-val.low { color:#BA7517; } .stock-pill-val.empty { color:#A32D2D; }
+    .mini-donut { width:120px; height:120px; flex-shrink:0; }
     @media (max-width: 700px) { .companies-charts { grid-template-columns: 1fr; } .pen-grid { grid-template-columns: repeat(3, 1fr); } }
   </style>
 </head>
@@ -81,7 +89,8 @@ document.getElementById("connStatus").textContent="✓ Conectado";
 
 onSnapshot(collection(db,"stocks"), snap => {
   snap.forEach(d => { stockData[d.id]=d.data(); });
-  renderCharts();
+  if(document.getElementById("coStocks-CETLOG")) updateCharts();
+  else renderCharts();
 });
 
 onSnapshot(query(collection(db,"movimientos"),orderBy("timestamp","desc")), snap => {
@@ -98,22 +107,73 @@ onSnapshot(query(collection(db,"penalizaciones"),orderBy("timestamp","desc")), s
 
 function renderCharts(){
   const grid = document.getElementById("chartsGrid");
-  grid.innerHTML = Object.entries(COMPANIES).map(([key,co])=>`
-    <div class="donut-card" id="donut-${key}" style="max-width:none;"></div>
-  `).join("");
-  // Render each donut
+  grid.innerHTML = Object.entries(COMPANIES).map(([key,co])=>{
+    return `<div class="company-row">
+      <div>
+        <div class="company-row-name">${co.label}</div>
+        <div id="coTotal-${key}" style="font-size:11px;color:#888780;margin-top:2px;"></div>
+      </div>
+      <div class="company-row-stocks" id="coStocks-${key}"></div>
+      <div><svg id="coDonut-${key}" viewBox="0 0 120 120" class="mini-donut"></svg></div>
+    </div>`;
+  }).join("");
+  updateCharts();
+}
+
+function updateCharts(){
   for(const [key,co] of Object.entries(COMPANIES)){
     const stock = stockData[key] || co.initial;
     const total = PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-    const used = total;
-    let title = co.label;
-    if(co.limit){
-      title = `${co.label} (${used}/${co.limit} uds)`;
-    } else {
-      title = `${co.label} (${used} cajas)`;
+
+    // Stock pills
+    const pillsEl = document.getElementById("coStocks-"+key);
+    if(pillsEl){
+      pillsEl.innerHTML = PRODS.map(p=>{
+        const v=stock[p]||0;
+        const cls = v===0?"empty":co.limit&&total/co.limit>0.8?"low":"ok";
+        return `<div class="stock-pill"><span class="stock-pill-label">${p}</span><span class="stock-pill-val ${cls}">${v}</span></div>`;
+      }).join("");
     }
-    window.renderDonut("donut-"+key, stock, PRODS, co.limit, title);
+
+    // Total label
+    const totalEl = document.getElementById("coTotal-"+key);
+    if(totalEl){
+      if(co.limit){
+        const pct=Math.round(total/co.limit*100);
+        const col=total>=co.limit?"#A32D2D":total/co.limit>0.8?"#BA7517":"#0F6E56";
+        totalEl.innerHTML=`<span style="color:${col};font-weight:500">${total}</span> / ${co.limit} uds`;
+      } else {
+        totalEl.textContent=`${total} cajas`;
+      }
+    }
+
+    // Mini donut SVG
+    const svgEl = document.getElementById("coDonut-"+key);
+    if(svgEl) renderMiniDonut(svgEl, stock, co.limit);
   }
+}
+
+function renderMiniDonut(svgEl, stock, limit){
+  const PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
+  const colors={Rojo:"#E24B4A",Azul:"#378ADD",Rosado:"#E89AB9",Blanco:"#d3d1c7",Amarillo:"#EFC027",LIBRE:"#f1efe8"};
+  const cx=60,cy=60,r=44,sw=20;
+  const segments=[];
+  PRODS.forEach(p=>{ const v=stock[p]||0; if(v>0) segments.push({name:p,value:v,color:colors[p]}); });
+  const used=segments.reduce((a,s)=>a+s.value,0);
+  if(limit){ const free=Math.max(0,limit-used); if(free>0) segments.push({name:"LIBRE",value:free,color:colors.LIBRE}); }
+  const total=segments.reduce((a,s)=>a+s.value,0);
+  if(!total){svgEl.innerHTML=`<circle cx="60" cy="60" r="44" fill="none" stroke="#f1efe8" stroke-width="20"/>`;return;}
+  let cum=0;
+  const paths=segments.map(seg=>{
+    const sa=(cum/total)*2*Math.PI-Math.PI/2;
+    const ea=((cum+seg.value)/total)*2*Math.PI-Math.PI/2;
+    cum+=seg.value;
+    const la=(seg.value/total)>0.5?1:0;
+    const x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa);
+    const x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
+    return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${la} 1 ${x2} ${y2}" fill="none" stroke="${seg.color}" stroke-width="${sw}"/>`;
+  }).join("");
+  svgEl.innerHTML=paths+`<text x="60" y="64" text-anchor="middle" font-size="13" font-weight="500" fill="#1a1a18">${used}</text>`;
 }
 
 function renderPenGrid(){

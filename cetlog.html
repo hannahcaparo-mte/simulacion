@@ -23,13 +23,17 @@
       <div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
     </div>
-    <div class="donut-card" id="donutCard"></div>
   </div>
   <div class="alert-banner" id="alertBanner"></div>
 
   <p class="section-title">Registrar despacho (en cajas)</p>
   <div class="card">
     <p style="font-size:12px;color:#888780;margin-bottom:12px;">Despachos a TOTTUS CD o YICHANG CD: <strong>①</strong> Registra los productos en cajas (1 caja = 8 uds) → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (cajas)</span>
+      <span></span>
+    </div>
     <div id="mvPicker"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
       <div class="field"><label>Destino</label>
@@ -101,7 +105,7 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
-  window.renderDonut("donutCard", stock, PRODS, LIMIT, "CETLOG");
+  // donut removed from this layout
   const b=document.getElementById("alertBanner");
   if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (184 uds).";}else b.className="alert-banner";
 }
@@ -127,11 +131,17 @@ function renderLlegadas(rows){
   if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p>';return;}
   c.innerHTML=rows.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div><div class="order-detail">${t} · <span class="badge registrado">Registrado</span></div></div>`;
+    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div><div class="order-detail">${t} · <span class="badge registrado">✓ En inventario</span></div></div>`;
+    if(o.estado==="confirmada") return `<div class="order-item en-proceso" style="margin-bottom:8px;border-left:3px solid #EF9F27;">
+      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
+      <div class="order-detail">De: UNILEVER MEX · ${t}</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Usa el formulario de Registrar despacho (arriba) para sumarlo al inventario manualmente, luego presiona Registrado.</p>
+      <button class="btn" style="width:100%;margin-top:4px;background:#EAF3DE;color:#0F6E56;border-color:#5DCAA5" onclick="registrarEntradaManual('${o.id}','${o.producto}',${o.cantidad})">✓ Ya lo registré en el inventario</button>
+    </div>`;
     return `<div class="order-item pendiente" style="margin-bottom:8px;" id="ll-${o.id}">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
       <div class="order-detail">De: UNILEVER MEX · ${t}</div>
-      <button class="btn success" style="width:100%;margin-top:6px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">✓ Registrar llegada</button>
+      <button class="btn success" style="width:100%;margin-top:6px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">Confirmar recepción física</button>
     </div>`;
   }).join("");
 }
@@ -187,17 +197,27 @@ window.marcarDespachado=async function(id){
   await updateDoc(doc(db,"pedidos",id),{estado:"completado"});
 };
 
+// pendingLlegadas stores llegadas that arrived but not yet manually entered
+window.pendingLlegada = {};
+
 window.registrarLlegada=async function(id,producto,cantidad){
+  // Mark as "acknowledged" but not yet in stock - user must manually register
+  await updateDoc(doc(db,"llegadas",id),{estado:"confirmada"});
+  window.pendingLlegada[id]={producto,cantidad};
+  showAlert(document.getElementById("mvAlert"),`Llegada confirmada: ${cantidad} uds de ${producto}. Ahora regístrala en el inventario usando el formulario de arriba (Tipo: Orden de compra, Dirección: Recibo de UNILEVER MEX).`,false);
+};
+
+window.registrarEntradaManual=async function(id,producto,cantidad){
   const ns={...stock};
   const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
   if(total+cantidad>LIMIT){
-    showAlert(document.getElementById("mvAlert"),`⚠ Supera el límite total. Penalización registrada.`,true);
+    showAlert(document.getElementById("mvAlert"),`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
     await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${cantidad} uds de ${producto} supera ${LIMIT} uds`,timestamp:serverTimestamp()});
     return;
   }
   ns[producto]=(ns[producto]||0)+cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",contraparte:"UNILEVER_MEX",notas:"Llegada registrada",manual:true,timestamp:serverTimestamp()});
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",contraparte:"UNILEVER_MEX",notas:"Llegada registrada manualmente",manual:true,timestamp:serverTimestamp()});
   await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
 };
 

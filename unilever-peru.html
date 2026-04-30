@@ -17,7 +17,7 @@
 <div class="with-panel">
 <div class="page">
 
-  <div class="info-box"> 1) Recibes una orden de compra, 2)Si hay stock, generas una orden de pedido para CETLOG (si no hay pide a UNILEVER MEXICO), 3) Cuando recibas la notificación de despacho de CETLOG, presiona en "Atendido" en el panel derecho.</div>
+  <div class="info-box"> 1) Recibes una orden de compra, 2) Generas una orden de pedido para CETLOG (verifica antes que CETLOG tenga stock suficiente), 3) Cuando recibas la notificación de despacho de CETLOG, presiona en "Atendido" en el panel derecho.</div>
 
   <p class="section-title">Stock disponible en CETLOG (en unidades)</p>
   <div class="stock-section">
@@ -111,9 +111,11 @@ onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderHistEmit(r);
 });
 
-// Listen for CETLOG dispatch notifications (sent to UNILEVER_PERU)
-onSnapshot(query(collection(db,"despachos"),where("destinoNotif","==",ID),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderDispatchNotifs(r);
+// Listen for CETLOG dispatch notifications - listen all and filter client side (no index needed)
+onSnapshot(collection(db,"despachos"),s=>{
+  const r=[]; s.forEach(d=>{ const data=d.data(); if(data.destinoNotif===ID) r.push({id:d.id,...data}); });
+  r.sort((a,b)=>{ const at=a.timestamp?.toDate?.()?.getTime()||0; const bt=b.timestamp?.toDate?.()?.getTime()||0; return bt-at; });
+  renderDispatchNotifs(r);
 });
 
 function renderStock(){
@@ -217,13 +219,13 @@ window.enviarOP=async function(){
 
 window.enviarOC=async function(){
   const items = ocPicker.getValid();
-  const notas=document.getElementById("ocNotas").value;
+  const notas="";
   const al=document.getElementById("ocAlert");
   if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
   await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",items,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
   ocPicker.reset();
-  document.getElementById("ocNotas").value="";
+
   showAlert(al,`Orden de compra enviada a UNILEVER MEX (${items.length} producto(s)).`,false);
 };
 
