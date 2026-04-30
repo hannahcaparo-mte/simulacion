@@ -33,6 +33,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('venta')">Registrar salidas de inventario</button>
     <button class="tab" onclick="switchTab('pedido')">Solicitar transferencia de inventario</button>
+    <button class="tab" onclick="switchTab('llegada')">Registrar llegada de inventario</button>
   </div>
 
   <div class="tab-content active" id="tab-venta">
@@ -112,6 +113,8 @@ document.getElementById("connStatus").textContent="✓ Conectado";
 
 const vtPicker = window.createPicker("vtPicker","Unidades");
 const pdPicker = window.createPicker("pdPicker","Unidades");
+const llegadaPicker = window.createPicker("llegadaPicker","Unidades");
+window.llegadaPicker = llegadaPicker;
 
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
@@ -159,38 +162,20 @@ function renderLlegadas(rows){
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de TOTTUS CD</div><div class="order-detail">${t} · <span class="badge registrado">Registrado</span></div></div>`;
     if(o.estado==="confirmada") return `<div class="order-item en-proceso" style="margin-bottom:8px;border-left:3px solid #EF9F27;">
-      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Recibido — pendiente de registrar en inventario</div>
-      <div class="order-detail">${o.producto} — ${o.cantidad} uds · De: TOTTUS CD · ${t}</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Registra la entrada en el formulario de movimientos y luego presiona el botón.</p>
-      <button class="btn" style="width:100%;margin-top:4px;background:#EAF3DE;color:#0F6E56;border-color:#5DCAA5" onclick="registrarEnInventario('${o.id}','${o.producto}',${o.cantidad})">✓ Ya lo registré en el inventario</button>
+      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
+      <div class="order-detail">De: TOTTUS CD · ${t}</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Ve a la pestaña "Registrar llegada de inventario" para sumarlo al stock manualmente.</p>
     </div>`;
-    return `<div class="order-item pendiente" style="margin-bottom:8px;" id="ll-${o.id}">
+    return `<div class="order-item pendiente" style="margin-bottom:8px;">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
       <div class="order-detail">De: TOTTUS CD · ${t}</div>
-      <button class="btn success" style="width:100%;margin-top:6px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">Confirmar recepción física</button>
+      <button class="btn success" style="width:100%;margin-top:6px" onclick="confirmarLlegada('${o.id}')">Confirmar recepción física</button>
     </div>`;
   }).join("");
 }
 
-window.registrarLlegada=async function(id,producto,cantidad){
-  // Step 1: confirm physical receipt, mark as "confirmada"
+window.confirmarLlegada=async function(id){
   await updateDoc(doc(db,"llegadas",id),{estado:"confirmada"});
-};
-
-window.registrarEnInventario=async function(id,producto,cantidad){
-  const ns={...stock};
-  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
-  if(total+cantidad>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${cantidad} uds de ${producto} supera 70 uds`,timestamp:serverTimestamp()});
-    const al=document.querySelector(".alert-banner");
-    if(al){al.textContent="⚠ Supera el límite total de 70 uds. Penalización registrada.";al.className="alert-banner error show";setTimeout(()=>al.className="alert-banner",5000);}
-    return;
-  }
-  ns[producto]=(ns[producto]||0)+cantidad;
-  await setDoc(doc(db,"stocks",ID),ns);
-  const tipo = ID==="TOTTUS_TIENDA"?"transf-entrada":"orden-compra";
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo,producto,cantidad,direccion:"entrada",notas:"Llegada registrada en inventario",manual:true,timestamp:serverTimestamp()});
-  await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
 };
 
 window.registrarVenta=async function(){
@@ -220,9 +205,30 @@ window.pedirStock=async function(){
 };
 
 window.switchTab=function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["venta","pedido"][i]===t));
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["venta","pedido","llegada"][i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   const el=document.getElementById("tab-"+t); if(el) el.classList.add("active");
+};
+
+window.registrarLlegadaManual=async function(){
+  const items=window.llegadaPicker.getValid();
+  const al=document.getElementById("llegadaAlert");
+  if(!items.length){showAlert(al,"Selecciona producto y cantidad.",true);return;}
+  const ns={...stock};
+  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
+  let added=0; for(const it of items) added+=it.cantidad;
+  if(total+added>LIMIT){
+    showAlert(al,`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${added} uds supera ${LIMIT} uds`,timestamp:serverTimestamp()});
+    return;
+  }
+  for(const it of items){
+    ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"transf-entrada",producto:it.producto,cantidad:it.cantidad,direccion:"entrada",notas:"Llegada registrada manualmente",manual:true,timestamp:serverTimestamp()});
+  }
+  await setDoc(doc(db,"stocks",ID),ns);
+  window.llegadaPicker.reset();
+  showAlert(al,`✓ ${items.length} producto(s) sumados al inventario.`,false);
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

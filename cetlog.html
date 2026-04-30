@@ -152,9 +152,15 @@ function renderLlegadas(rows){
   c.innerHTML=rows.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds</div><div class="order-detail">${t} · <span class="badge registrado">✓ En inventario</span></div></div>`;
+    if(o.estado==="confirmada") return `<div class="order-item en-proceso" style="margin-bottom:8px;border-left:3px solid #EF9F27;">
+      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
+      <div class="order-detail">De: UNILEVER MEX · ${t}</div>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Ve a la pestaña "Registrar llegada de inventario" para sumarlo al stock manualmente.</p>
+    </div>`;
     return `<div class="order-item pendiente" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Pendiente: ${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div>
-      <div class="order-detail">${t} · Ve a "Registrar llegada de inventario" para sumarlo al stock.</div>
+      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div>
+      <div class="order-detail">${t}</div>
+      <button class="btn success" style="width:100%;margin-top:6px" onclick="confirmarLlegada('${o.id}')">Confirmar recepción física</button>
     </div>`;
   }).join("");
 }
@@ -220,6 +226,10 @@ window.registrarMov=async function(){
   }
   mvPicker.reset();
   showAlert(al,`✓ ${items.length} producto(s) registrados. Llegada notificada a ${cp==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}. Ahora presiona Despachado.`,false);
+};
+
+window.confirmarLlegada=async function(id){
+  await updateDoc(doc(db,"llegadas",id),{estado:"confirmada"});
 };
 
 window.registrarLlegadaManual=async function(){
