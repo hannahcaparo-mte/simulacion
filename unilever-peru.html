@@ -8,24 +8,24 @@
 </head>
 <body>
 <div class="topbar">
+<div style="display:flex;align-items:center;gap:14px;">
+    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
   <div>
     <div class="topbar-title" style="color:#3B6D11;">🌿 UNILEVER PERÚ</div>
     <div class="topbar-sub">  Coordinador local</div>
   </div>
+</div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <div class="info-box"> 1) Recibes una orden de compra, 2) Generas una orden de pedido para CETLOG (verifica antes que CETLOG tenga stock suficiente), 3) Cuando recibas la notificación de despacho de CETLOG, presiona en "Atendido" en el panel derecho.</div>
+  <div class="info-box"> Cuando recibas una orden de compra: Generas una orden de pedido para CETLOG (si tiene stock suficiente) → Esperas a recibir la notificación de despacho de CETLOG → Presionas en "Atendido" en el panel derecho.</div>
 
   <p class="section-title">Stock disponible en CETLOG (en unidades)</p>
-  <div class="stock-section">
-    <div>
       <div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
-    </div>
-  </div>
+    
   <div class="alert-banner" id="alertBanner"></div>
   <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
   <p class="section-title">Registrar órdenes y movimientos</p>
@@ -52,7 +52,7 @@
 
   <div class="tab-content" id="tab-oc">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele stock a UNILEVER MEXICO.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele que le envíe stock a UNILEVER MEXICO.</p>
       <div id="ocPicker"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div class="field" style="display:flex;align-items:flex-end;">

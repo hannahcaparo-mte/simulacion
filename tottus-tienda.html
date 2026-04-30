@@ -8,10 +8,14 @@
 </head>
 <body>
 <div class="topbar">
+<div style="display:flex;align-items:center;gap:14px;">
+    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
+
   <div>
     <div class="topbar-title" style="color:#993556;">🛒 TOTTUS TIENDA</div>
     <div class="topbar-sub">  Retail</div>
   </div>
+ </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
@@ -27,15 +31,21 @@
   <div class="alert-banner" id="alertBanner"></div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('venta')">Registrar ventas</button>
+    <button class="tab active" onclick="switchTab('venta')">Registrar salidas de inventario</button>
     <button class="tab" onclick="switchTab('pedido')">Solicitar transferencia de inventario</button>
   </div>
 
   <div class="tab-content active" id="tab-venta">
     <div class="card">
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Registra la salida de inventario cuando se entregue al cliente.</p>
+<div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
+      <span></span>
+    </div>
+
       <div id="vtPicker"></div>
-      <button class="btn danger" onclick="registrarVenta()" style="margin-top:8px;">Registrar</button>
+      <button class="btn danger" onclick="registrarVenta()" style="margin-top:8px;">Registrar salida</button>
       <div class="alert-banner" id="vtAlert"></div>
 
     </div>
@@ -44,10 +54,30 @@
 
   <div class="tab-content" id="tab-pedido">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Solicita una transferencia de inventario a TOTTUS CD cuando te quedes sin stock. </p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;"> Cuando no tengas stock, solicita una transferencia de inventario a Tottus CD. </p>
+<div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+      <span></span>
+    </div>
+
       <div id="pdPicker"></div>
-      <button  class="btn danger" onclick="pedirStock()" style="margin-top:8px;">Solicitar</button>
+      <button  class="btn danger" onclick="pedirStock()" style="margin-top:8px;">Solicitar transferencia</button>
       <div class="alert-banner" id="pdAlert"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-llegada">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue inventario de TOTTUS CD, regístralo aquí manualmente. Selecciona el producto y cantidad, luego presiona "Ya lo registré".</p>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (Unidades)</span>
+        <span></span>
+      </div>
+      <div id="llegadaPicker"></div>
+      <button class="btn success" onclick="registrarLlegadaManual()" style="margin-top:8px;">Registrado</button>
+      <div class="alert-banner" id="llegadaAlert"></div>
     </div>
   </div>
 
@@ -63,7 +93,7 @@
 </div>
 
 <div class="orders-panel">
-  <p class="section-title">Llegadas de inventario CD</p>
+  <p class="section-title">Llegadas de inventario</p>
   <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD</p>
   <div id="llegadasContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin llegadas.</p></div>
 </div>
@@ -192,7 +222,7 @@ window.pedirStock=async function(){
 window.switchTab=function(t){
   document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["venta","pedido"][i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.getElementById("tab-"+t).classList.add("active");
+  const el=document.getElementById("tab-"+t); if(el) el.classList.add("active");
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

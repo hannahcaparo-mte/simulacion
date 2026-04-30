@@ -8,34 +8,39 @@
 </head>
 <body>
 <div class="topbar">
+<div style="display:flex;align-items:center;gap:14px;">
+    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
   <div>
     <div class="topbar-title" style="color:#BA7517;">🏬 YICHANG CD</div>
-    <div class="topbar-sub">Distribuidor · Límite total: 120 uds</div>
+    <div class="topbar-sub">Distribuidor</div>
+  </div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <p class="section-title">Mi stock</p>
-  <div class="stock-section">
-    <div>
-      <div class="stock-grid" id="stockGrid"></div>
+  <p class="section-title">Stock disponible (en unidades)</p>
+<div class="stock-grid" id="stockGrid"></div>
       <div class="total-bar" id="totalBar"></div>
-    </div>
-    <div class="donut-card" id="donutCard"></div>
-  </div>
+ 
   <div class="alert-banner" id="alertBanner"></div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('oc')">Orden de compra → UNILEVER PERÚ</button>
-    <button class="tab" onclick="switchTab('dt')">Venta a DON TITO</button>
+    <button class="tab active" onclick="switchTab('oc')">Orden de compra a UNILEVER PERÚ</button>
+    <button class="tab" onclick="switchTab('dt')">Registro de salida de inventario</button>
   </div>
 
   <div class="tab-content active" id="tab-oc">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock, pide a UNILEVER PERÚ.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando no tengas stock, pídele a UNILEVER PERÚ </p>
+<div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+      <span></span>
+    </div>
       <div id="ocPicker"></div>
+
       <button class="btn primary" onclick="enviarOC()" style="margin-top:8px;">Enviar orden de compra</button>
       <div class="alert-banner" id="ocAlert"></div>
     </div>
@@ -43,10 +48,29 @@
 
   <div class="tab-content" id="tab-dt">
     <div class="card">
-      <div class="info-box" style="margin-bottom:12px;">🧑‍💼 DON TITO no tiene computadora. Cuando llegue a comprarte, regístralo aquí.</div>
+       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando Don tito se acerque con un pedido: Despacha físicamete → Regístra la salida de inventario.</p>
+<div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
+      <span></span>
+    </div>
       <div id="dtPicker"></div>
-      <button class="btn" style="background:#EAF3DE;color:#27500A;border-color:#97C459;margin-top:8px;" onclick="venderDonTito()">Registrar venta a DON TITO</button>
+      <button class="btn" style="background:#EAF3DE;color:#27500A;border-color:#97C459;margin-top:8px;" onclick="venderDonTito()">Registrar salida</button>
       <div class="alert-banner" id="dtAlert"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-llegada">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue inventario de CETLOG, regístralo aquí manualmente. Selecciona el producto y cantidad, luego presiona "Ya lo registré".</p>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (Unidades)</span>
+        <span></span>
+      </div>
+      <div id="llegadaPicker"></div>
+      <button class="btn success" onclick="registrarLlegadaManual()" style="margin-top:8px;">Ya lo registré en el inventario</button>
+      <div class="alert-banner" id="llegadaAlert"></div>
     </div>
   </div>
 
@@ -62,8 +86,8 @@
 </div>
 
 <div class="orders-panel">
-  <p class="section-title">Llegadas de CETLOG</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Presiona "Registrar llegada" para sumar al stock</p>
+  <p class="section-title">Órdenes de compra recibidos</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De CETLOG</p>
   <div id="llegadasContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin llegadas.</p></div>
 </div>
 
@@ -194,7 +218,7 @@ window.venderDonTito=async function(){
 window.switchTab=function(t){
   document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["oc","dt"][i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.getElementById("tab-"+t).classList.add("active");
+  const el=document.getElementById("tab-"+t); if(el) el.classList.add("active");
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

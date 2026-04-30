@@ -8,45 +8,64 @@
 </head>
 <body>
 <div class="topbar">
+<div style="display:flex;align-items:center;gap:14px;">
+    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
   <div>
     <div class="topbar-title" style="color:#534AB7;">📦 CETLOG</div>
-    <div class="topbar-sub">Almacén de UNILEVER PERÚ · Límite total: 184 uds</div>
+    <div class="topbar-sub">Almacén de UNILEVER PERÚ</div>
   </div>
+</div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <p class="section-title">Mi stock</p>
-  <div class="stock-section">
-    <div>
-      <div class="stock-grid" id="stockGrid"></div>
-      <div class="total-bar" id="totalBar"></div>
-    </div>
-  </div>
+  <p class="section-title">Stock disponible (en unidades)</p>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="total-bar" id="totalBar"></div>
   <div class="alert-banner" id="alertBanner"></div>
 
-  <p class="section-title">Registrar despacho (en cajas)</p>
-  <div class="card">
-    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Despachos a TOTTUS CD o YICHANG CD: <strong>①</strong> Registra los productos en cajas (1 caja = 8 uds) → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
-    <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
-      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
-      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (cajas)</span>
-      <span></span>
-    </div>
-    <div id="mvPicker"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-      <div class="field"><label>Destino</label>
-        <select id="mvContra">
-          <option value="TOTTUS_CD">TOTTUS CD</option>
-          <option value="YICHANG_CD">YICHANG CD</option>
-        </select>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('despacho')">Registrar despacho</button>
+    <button class="tab" onclick="switchTab('llegada')">Registrar llegada de inventario</button>
+  </div>
+
+  <div class="tab-content active" id="tab-despacho">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando te llegue una orden de pedido: Despacha a TOTTUS CD o YICHANG CD → Presiona "Despachado" en el panel derecho.</p>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+        <span></span>
       </div>
-      <div class="field" style="display:flex;align-items:flex-end;">
-        <button class="btn primary" style="width:100%" onclick="registrarMov()">Registrar despacho</button>
+      <div id="mvPicker"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+        <div class="field"><label>Destino</label>
+          <select id="mvContra">
+            <option value="TOTTUS_CD">TOTTUS CD</option>
+            <option value="YICHANG_CD">YICHANG CD</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn primary" style="width:100%" onclick="registrarMov()">Registrar despacho</button>
+        </div>
       </div>
+      <div class="alert-banner" id="mvAlert"></div>
     </div>
-    <div class="alert-banner" id="mvAlert"></div>
+  </div>
+
+  <div class="tab-content" id="tab-llegada">
+    <div class="card">
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue inventario de UNILEVER MEX: Regístralo manualmente → Presiona en el botón de registrado</p>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+        <span></span>
+      </div>
+      <div id="llegadaPicker"></div>
+      <button class="btn success" onclick="registrarLlegadaManual()" style="margin-top:8px;">Registrar llegada</button>
+      <div class="alert-banner" id="llegadaAlert"></div>
+    </div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
@@ -82,6 +101,8 @@ let stock={...INIT}, timers={};
 document.getElementById("connStatus").textContent="✓ Conectado";
 
 const mvPicker = window.createPicker("mvPicker","Cajas");
+const llegadaPicker = window.createPicker("llegadaPicker","Unidades");
+window.llegadaPicker = llegadaPicker;
 
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
@@ -105,7 +126,6 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
-  // donut removed from this layout
   const b=document.getElementById("alertBanner");
   if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (184 uds).";}else b.className="alert-banner";
 }
@@ -131,17 +151,10 @@ function renderLlegadas(rows){
   if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p>';return;}
   c.innerHTML=rows.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div><div class="order-detail">${t} · <span class="badge registrado">✓ En inventario</span></div></div>`;
-    if(o.estado==="confirmada") return `<div class="order-item en-proceso" style="margin-bottom:8px;border-left:3px solid #EF9F27;">
-      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail">De: UNILEVER MEX · ${t}</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Usa el formulario de Registrar despacho (arriba) para sumarlo al inventario manualmente, luego presiona Registrado.</p>
-      <button class="btn" style="width:100%;margin-top:4px;background:#EAF3DE;color:#0F6E56;border-color:#5DCAA5" onclick="registrarEntradaManual('${o.id}','${o.producto}',${o.cantidad})">✓ Ya lo registré en el inventario</button>
-    </div>`;
-    return `<div class="order-item pendiente" style="margin-bottom:8px;" id="ll-${o.id}">
-      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail">De: UNILEVER MEX · ${t}</div>
-      <button class="btn success" style="width:100%;margin-top:6px" onclick="registrarLlegada('${o.id}','${o.producto}',${o.cantidad})">Confirmar recepción física</button>
+    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds</div><div class="order-detail">${t} · <span class="badge registrado">✓ En inventario</span></div></div>`;
+    return `<div class="order-item pendiente" style="margin-bottom:8px;">
+      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Pendiente: ${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div>
+      <div class="order-detail">${t} · Ve a "Registrar llegada de inventario" para sumarlo al stock.</div>
     </div>`;
   }).join("");
 }
@@ -152,7 +165,7 @@ function renderOrders(orders){
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.destinoFinal]||"—";
-    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${o.producto} ×${o.cantidad}cj`;
+    const itemsTxt=o.items?o.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", "):`${o.producto} ×${o.cantidad}cj`;
     if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} → ${dest}</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
     if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Vencido</span></div></div>`;
     if(!timers[o.id]) startTimer(o.id,o.timestamp);
@@ -160,19 +173,19 @@ function renderOrders(orders){
       <div class="order-title" style="font-size:13px;">${itemsTxt} → ${dest}</div>
       <div class="order-detail">UNILEVER PERÚ · ${t}</div>
       <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra despacho arriba · ② Presiona Despachado</p>
+      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra despacho · ② Presiona Despachado</p>
       <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
     </div>`;
   }).join("");
 }
 
-function startTimer(oid,acceptedAt){
+function startTimer(oid,ts){
   if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
+  const dl=ts?(ts.toDate?ts.toDate().getTime():ts)+180000:Date.now()+180000;
   timers[oid]=setInterval(async()=>{
     const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
     if(!el){clearInterval(timers[oid]);return;}
-    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden de pedido no despachada en 3 min",timestamp:serverTimestamp()});return;}
+    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden no despachada en 3 min",timestamp:serverTimestamp()});return;}
     const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
     el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(rem<60000?" warning":"");
   },500);
@@ -180,67 +193,60 @@ function startTimer(oid,acceptedAt){
 
 window.marcarDespachado=async function(id){
   clearInterval(timers[id]);
-  // Get order info to send notification to UNILEVER PERÚ
-  const orderSnap = await getDoc(doc(db,"pedidos",id));
-  if(orderSnap.exists()){
-    const o = orderSnap.data();
-    await addDoc(collection(db,"despachos"),{
-      destinoNotif:"UNILEVER_PERU",
-      origen:ID,
-      destinoFinal:o.destinoFinal,
-      items:o.items||null,
-      producto:o.producto||null,
-      cantidad:o.cantidad||null,
-      timestamp:serverTimestamp()
-    });
+  const snap=await getDoc(doc(db,"pedidos",id));
+  if(snap.exists()){
+    const o=snap.data();
+    await addDoc(collection(db,"despachos"),{destinoNotif:"UNILEVER_PERU",origen:ID,destinoFinal:o.destinoFinal,items:o.items||null,producto:o.producto||null,cantidad:o.cantidad||null,timestamp:serverTimestamp()});
   }
   await updateDoc(doc(db,"pedidos",id),{estado:"completado"});
 };
 
-// pendingLlegadas stores llegadas that arrived but not yet manually entered
-window.pendingLlegada = {};
-
-window.registrarLlegada=async function(id,producto,cantidad){
-  // Mark as "acknowledged" but not yet in stock - user must manually register
-  await updateDoc(doc(db,"llegadas",id),{estado:"confirmada"});
-  window.pendingLlegada[id]={producto,cantidad};
-  showAlert(document.getElementById("mvAlert"),`Llegada confirmada: ${cantidad} uds de ${producto}. Ahora regístrala en el inventario usando el formulario de arriba (Tipo: Orden de compra, Dirección: Recibo de UNILEVER MEX).`,false);
-};
-
-window.registrarEntradaManual=async function(id,producto,cantidad){
-  const ns={...stock};
-  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
-  if(total+cantidad>LIMIT){
-    showAlert(document.getElementById("mvAlert"),`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${cantidad} uds de ${producto} supera ${LIMIT} uds`,timestamp:serverTimestamp()});
-    return;
-  }
-  ns[producto]=(ns[producto]||0)+cantidad;
-  await setDoc(doc(db,"stocks",ID),ns);
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto,cantidad,direccion:"entrada",contraparte:"UNILEVER_MEX",notas:"Llegada registrada manualmente",manual:true,timestamp:serverTimestamp()});
-  await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
-};
-
 window.registrarMov=async function(){
-  const items = mvPicker.getValid();
+  const items=mvPicker.getValid();
   const cp=document.getElementById("mvContra").value;
   const al=document.getElementById("mvAlert");
   if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
   const ns={...stock};
-  // Validate stock for all items (in unidades)
   for(const it of items){
-    const uds = it.cantidad*8;
+    const uds=it.cantidad*8;
     if((ns[it.producto]||0)<uds){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
     ns[it.producto]-=uds;
   }
   await setDoc(doc(db,"stocks",ID),ns);
   for(const it of items){
-    const uds = it.cantidad*8;
+    const uds=it.cantidad*8;
     await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:uds,direccion:"salida",contraparte:cp,notas:`${it.cantidad} cajas`,manual:true,timestamp:serverTimestamp()});
     await addDoc(collection(db,"llegadas"),{destino:cp,producto:it.producto,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
   }
   mvPicker.reset();
   showAlert(al,`✓ ${items.length} producto(s) registrados. Llegada notificada a ${cp==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}. Ahora presiona Despachado.`,false);
+};
+
+window.registrarLlegadaManual=async function(){
+  const items=window.llegadaPicker.getValid();
+  const al=document.getElementById("llegadaAlert");
+  if(!items.length){showAlert(al,"Selecciona producto y cantidad.",true);return;}
+  const ns={...stock};
+  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
+  let added=0; for(const it of items) added+=it.cantidad;
+  if(total+added>LIMIT){
+    showAlert(al,`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${added} uds supera ${LIMIT} uds`,timestamp:serverTimestamp()});
+    return;
+  }
+  for(const it of items){
+    ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"entrada",contraparte:"UNILEVER_MEX",notas:"Llegada registrada manualmente",manual:true,timestamp:serverTimestamp()});
+  }
+  await setDoc(doc(db,"stocks",ID),ns);
+  window.llegadaPicker.reset();
+  showAlert(al,`✓ ${items.length} producto(s) sumados al inventario.`,false);
+};
+
+window.switchTab=function(t){
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["despacho","llegada"][i]===t));
+  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
+  document.getElementById("tab-"+t).classList.add("active");
 };
 
 function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}

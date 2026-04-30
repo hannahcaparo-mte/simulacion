@@ -8,30 +8,34 @@
 </head>
 <body>
 <div class="topbar">
-  <div>
+ 
+<div style="display:flex;align-items:center;gap:14px;">
+    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
+    <div>
     <div class="topbar-title" style="color:#185FA5;">🏭 UNILEVER MEXICO</div>
     <div class="topbar-sub">  Fabricante</div>
+  </div>
   </div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 <div class="with-panel">
 <div class="page">
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:1.5rem;">
-    <div>
-      <p class="section-title">Stock disponible (en unidades)</p>
-      <div class="stock-grid" id="stockGrid"></div>
-      <div class="total-bar" id="totalBar"></div>
+  <p class="section-title">Stock disponible (en unidades)</p>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="total-bar" id="totalBar"></div>
+
+  <p class="section-title">Registrar salidas de inventario</p>
+  <div class="card">
+    <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando recibas una orden de compra: Entrega físicamente el producto → Registra la salida de inventario → Presiona "Despachado" en el panel derecho.</p>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+      <span></span>
     </div>
-    <div>
-      <p class="section-title">Registrar salidas de inventario</p>
-      <div class="card" style="margin-bottom:0">
-        <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue una orden de compra: <strong>①</strong> Registra la salida en cajas (1 caja = 8 uds) → <strong>②</strong> Presiona "Despachado" en el panel derecho.</p>
-        <div id="mvPicker"></div>
-        <button class="btn primary" onclick="registrarMov()" style="margin-top:8px;">Registrar salida</button>
-        <div class="alert-banner" id="mvAlert"></div>
-      </div>
-    </div>
+    <div id="mvPicker"></div>
+    <button class="btn primary" onclick="registrarMov()">Registrar salida</button>
+    <div class="alert-banner" id="mvAlert"></div>
   </div>
 
   <p class="section-title">Historial de movimientos</p>
