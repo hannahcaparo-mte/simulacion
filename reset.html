@@ -122,6 +122,7 @@ window.confirmarReset = async function() {
     await deleteCollection("pedidos", "dot2", "step2");
     await deleteCollection("penalizaciones", "dot3", "step3");
     await deleteCollection("llegadas", "dot3", "step3");
+    await deleteCollection("despachos", "dot3", "step3");
 
     document.getElementById("dot4").className = "dot active";
     for (const [empresa, stock] of Object.entries(INITIAL_STOCKS)) {

@@ -66,7 +66,7 @@ window.renderDonut = function(containerId, stock, productsList, limit, title) {
     <svg class="donut-svg" viewBox="0 0 200 200">
       ${arcs}
       <text x="100" y="95" text-anchor="middle" font-size="20" font-weight="500" fill="#1a1a18">${centerLabel}</text>
-      <text x="100" y="115" text-anchor="middle" font-size="11" fill="#888780">${limit?'uds totales':'cajas'}</text>
+      <text x="100" y="115" text-anchor="middle" font-size="11" fill="#888780">${limit?'uds totales':'uds'}</text>
     </svg>
     <div class="donut-legend">${legend}</div>`;
 };

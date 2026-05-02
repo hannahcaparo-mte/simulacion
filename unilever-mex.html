@@ -30,7 +30,7 @@
     <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando recibas una orden de compra: Entrega físicamente el producto → Registra la salida de inventario → Presiona "Despachado" en el panel derecho.</p>
     <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
       <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
-      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+      <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
       <span></span>
     </div>
     <div id="mvPicker"></div>
@@ -41,8 +41,8 @@
   <p class="section-title">Historial de movimientos</p>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cajas</th><th>Unidades descontadas</th><th>Detalle</th></tr></thead>
-      <tbody id="histBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr></tbody>
+      <thead><tr><th>#</th><th>Hora</th><th>Producto</th><th>Cantidad</th><th>Detalle</th></tr></thead>
+      <tbody id="histBody"><tr><td colspan="5" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr></tbody>
     </table>
   </div>
 
@@ -66,7 +66,7 @@ const INIT={Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96};
 let stock={...INIT}, timers={};
 document.getElementById("connStatus").textContent="✓ Conectado";
 
-const mvPicker = window.createPicker("mvPicker","Cajas");
+const mvPicker = window.createPicker("mvPicker","Unidades");
 
 (async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
 onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
@@ -82,8 +82,8 @@ function renderStock(){
 
 function renderHist(rows){
   const b=document.getElementById("histBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
-  b.innerHTML=rows.map((r,i)=>`<tr><td style="color:#b4b2a9">${rows.length-i}</td><td style="color:#888780">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td><td>${r.producto}</td><td style="font-weight:500;color:#A32D2D">-${r.cantidad} cj</td><td style="color:#A32D2D">-${r.cantidad*8} uds</td><td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
+  if(!rows.length){b.innerHTML='<tr><td colspan="5" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
+  b.innerHTML=rows.map((r,i)=>`<tr><td style="color:#b4b2a9">${rows.length-i}</td><td style="color:#888780">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td><td>${r.producto}</td><td style="font-weight:500;color:#A32D2D">-${r.cantidad} uds</td><td style="color:#888780;font-size:12px">${r.notas||""}</td></tr>`).join("");
 }
 
 function renderOrders(orders){
@@ -100,7 +100,7 @@ function renderOrders(orders){
       <div class="order-title">${itemsTxt}</div>
       <div class="order-detail">De: UNILEVER PERÚ · ${t}<br>${o.notas?`<em>${o.notas}</em>`:""}</div>
       <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">① Registra el movimiento arriba · ② Presiona Despachado</p>
+      <p style="font-size:11px;color:#5f5e5a;margin:6px 0;">Presiona una vez el producto ya esté despachado.</p>
       <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
     </div>`;
   }).join("");
@@ -135,11 +135,10 @@ window.registrarMov=async function(){
   const cs=cSnap.exists()?cSnap.data():{Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
   let totalC=Object.values(cs).reduce((a,v)=>a+v,0);
   for(const it of items){
-    const uds=it.cantidad*8;
-    if(totalC+uds>184) await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock límite excedido",detalle:`Despacho de ${it.cantidad} cj de ${it.producto} supera límite`,timestamp:serverTimestamp()});
-    totalC+=uds;
+    if(totalC+it.cantidad>184) await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock límite excedido",detalle:`Despacho de ${it.cantidad} uds de ${it.producto} supera límite`,timestamp:serverTimestamp()});
+    totalC+=it.cantidad;
     await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"salida",notas:"Despachado a CETLOG",manual:true,timestamp:serverTimestamp()});
-    await addDoc(collection(db,"llegadas"),{destino:"CETLOG",producto:it.producto,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+    await addDoc(collection(db,"llegadas"),{destino:"CETLOG",producto:it.producto,cantidad:it.cantidad,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
   }
   mvPicker.reset();
   showAlert(al,`✓ ${items.length} producto(s) registrados. Ahora presiona "Despachado" en el panel derecho.`,false);

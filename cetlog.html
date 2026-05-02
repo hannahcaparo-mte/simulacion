@@ -35,7 +35,7 @@
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando te llegue una orden de pedido: Despacha a TOTTUS CD o YICHANG CD → Presiona "Despachado" en el panel derecho.</p>
       <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
         <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
         <span></span>
       </div>
       <div id="mvPicker"></div>
@@ -59,7 +59,7 @@
       <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue inventario de UNILEVER MEX: Regístralo manualmente → Presiona en el botón de registrado</p>
       <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
         <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en cajas)</span>
+        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
         <span></span>
       </div>
       <div id="llegadaPicker"></div>
@@ -100,7 +100,7 @@ let stock={...INIT}, timers={};
 
 document.getElementById("connStatus").textContent="✓ Conectado";
 
-const mvPicker = window.createPicker("mvPicker","Cajas");
+const mvPicker = window.createPicker("mvPicker","Unidades");
 const llegadaPicker = window.createPicker("llegadaPicker","Unidades");
 window.llegadaPicker = llegadaPicker;
 
@@ -156,6 +156,7 @@ function renderLlegadas(rows){
       <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
       <div class="order-detail">De: UNILEVER MEX · ${t}</div>
       <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Ve a la pestaña "Registrar llegada de inventario" para sumarlo al stock manualmente.</p>
+      <button class="btn" style="width:100%;margin-top:6px;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="marcarRegistrado('${o.id}')">✓ Registrado</button>
     </div>`;
     return `<div class="order-item pendiente" style="margin-bottom:8px;">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div>
@@ -171,7 +172,7 @@ function renderOrders(orders){
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.destinoFinal]||"—";
-    const itemsTxt=o.items?o.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", "):`${o.producto} ×${o.cantidad}cj`;
+    const itemsTxt=o.items?o.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", "):`${o.producto} ×${o.cantidad} uds`;
     if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} → ${dest}</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
     if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Vencido</span></div></div>`;
     if(!timers[o.id]) startTimer(o.id,o.timestamp);
@@ -214,18 +215,20 @@ window.registrarMov=async function(){
   if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
   const ns={...stock};
   for(const it of items){
-    const uds=it.cantidad*8;
-    if((ns[it.producto]||0)<uds){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
-    ns[it.producto]-=uds;
+    if((ns[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
+    ns[it.producto]-=it.cantidad;
   }
   await setDoc(doc(db,"stocks",ID),ns);
   for(const it of items){
-    const uds=it.cantidad*8;
-    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:uds,direccion:"salida",contraparte:cp,notas:`${it.cantidad} cajas`,manual:true,timestamp:serverTimestamp()});
-    await addDoc(collection(db,"llegadas"),{destino:cp,producto:it.producto,cantidad:uds,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"salida",contraparte:cp,notas:"",manual:true,timestamp:serverTimestamp()});
+    await addDoc(collection(db,"llegadas"),{destino:cp,producto:it.producto,cantidad:it.cantidad,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
   }
   mvPicker.reset();
   showAlert(al,`✓ ${items.length} producto(s) registrados. Llegada notificada a ${cp==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}. Ahora presiona Despachado.`,false);
+};
+
+window.marcarRegistrado=async function(id){
+  await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
 };
 
 window.confirmarLlegada=async function(id){

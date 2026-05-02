@@ -98,8 +98,8 @@ let timers={};
 
 document.getElementById("connStatus").textContent="✓ Conectado";
 
-const opPicker = window.createPicker("opPicker","Cajas");
-const ocPicker = window.createPicker("ocPicker","Cajas");
+const opPicker = window.createPicker("opPicker","Unidades");
+const ocPicker = window.createPicker("ocPicker","Unidades");
 
 onSnapshot(doc(db,"stocks","CETLOG"),s=>{if(s.exists()){cetlogStock=s.data();renderStock();}});
 
@@ -113,10 +113,12 @@ onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("
 
 // Listen for CETLOG dispatch notifications - listen all and filter client side (no index needed)
 onSnapshot(collection(db,"despachos"),s=>{
-  const r=[]; s.forEach(d=>{ const data=d.data(); if(data.destinoNotif===ID) r.push({id:d.id,...data}); });
+  console.log("[despachos] snapshot received, size:", s.size);
+  const r=[]; s.forEach(d=>{ const data=d.data(); console.log("[despachos] doc:", d.id, data); if(data.destinoNotif===ID) r.push({id:d.id,...data}); });
+  console.log("[despachos] filtered for UNILEVER_PERU:", r.length);
   r.sort((a,b)=>{ const at=a.timestamp?.toDate?.()?.getTime()||0; const bt=b.timestamp?.toDate?.()?.getTime()||0; return bt-at; });
   renderDispatchNotifs(r);
-});
+}, err => console.error("[despachos] listener error:", err));
 
 function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(cetlogStock[p]||0),0);
@@ -142,7 +144,7 @@ function renderIncoming(orders){
   c.innerHTML=orders.map(o=>{
     const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const orig={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.origen]||o.origen;
-    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${o.producto} ×${o.cantidad}cj`;
+    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${o.producto} ×${o.cantidad} uds`;
     if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} de ${orig}</div><div class="order-detail">${t} · <span class="badge completado">Atendido</span></div></div>`;
     if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
     if(!timers[o.id]) startTimer(o.id,o.timestamp);
@@ -162,7 +164,7 @@ function renderHistEmit(rows){
   const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG",TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"};
   const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
   b.innerHTML=rows.map((r,i)=>{
-    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${r.producto||"—"} ×${r.cantidad||"—"}`;
+    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${r.producto||"—"} ×${r.cantidad||"—"}`;
     return `<tr>
       <td style="color:#b4b2a9">${rows.length-i}</td>
       <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
@@ -180,7 +182,7 @@ function renderDispatchNotifs(rows){
   c.innerHTML=rows.slice(0,5).map(r=>{
     const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[r.destinoFinal]||r.destinoFinal;
-    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${r.producto} ×${r.cantidad}cj`;
+    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${r.producto} ×${r.cantidad} uds`;
     return `<div style="padding:8px 10px;border-left:3px solid #1D9E75;background:#E1F5EE;margin-bottom:6px;border-radius:4px;font-size:13px;">
       <strong>📦 CETLOG despachó:</strong> ${itemsTxt} → ${dest}
       <div style="font-size:11px;color:#0F6E56;margin-top:2px;">${t} · Ya puedes pausar tu timer.</div>
@@ -209,7 +211,7 @@ window.enviarOP=async function(){
   if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
   // Validate stock
   for(const it of items){
-    if((cetlogStock[it.producto]||0)<it.cantidad*8){showAlert(al,`Stock insuficiente en CETLOG para ${it.producto}.`,true);return;}
+    if((cetlogStock[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente en CETLOG para ${it.producto}.`,true);return;}
   }
   await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",items,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",items,destino:"CETLOG",notas:`Para ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}`,timestamp:serverTimestamp()});

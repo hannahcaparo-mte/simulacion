@@ -1,0 +1,3 @@
+- el que tiene el timer es el que ha hecho el pedido. Una vez lo reciba --> pausa el timer
+- el que recibe el producto tiene timer pero no lo puede parar, se para automáticamente cuando se mande el pedido que ha sido mandado
+

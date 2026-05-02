@@ -144,7 +144,7 @@ function updateCharts(){
         const col=total>=co.limit?"#A32D2D":total/co.limit>0.8?"#BA7517":"#0F6E56";
         totalEl.innerHTML=`<span style="color:${col};font-weight:500">${total}</span> / ${co.limit} uds`;
       } else {
-        totalEl.textContent=`${total} cajas`;
+        totalEl.textContent=`${total} unidades`;
       }
     }
 
