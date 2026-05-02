@@ -77,7 +77,6 @@ function renderStock(){
   const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   document.getElementById("stockGrid").innerHTML=PRODS.map(p=>`<div class="stock-card ok"><div class="product-name">${p}</div><div class="stock-num ok">${stock[p]||0}</div><div class="bar-wrap"><div class="bar" style="width:100%;background:#1D9E75"></div></div></div>`).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:100%;background:#1D9E75"></div></div><span class="total-bar-num" style="color:#0F6E56">${total} unidades</span>`;
-  window.renderDonut("donutCard", stock, PRODS, null, "Distribución");
 }
 
 function renderHist(rows){

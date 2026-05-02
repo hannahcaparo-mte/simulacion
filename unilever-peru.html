@@ -131,7 +131,6 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${pp}%;background:${bc}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Total CETLOG</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${CETLOG_LIMIT} uds</span>`;
-  window.renderDonut("donutCard", cetlogStock, PRODS, CETLOG_LIMIT, "CETLOG");
   const b=document.getElementById("alertBanner");
   const zeros=PRODS.filter(p=>(cetlogStock[p]||0)===0);
   if(zeros.length){b.className="alert-banner error show";b.textContent="Sin stock en CETLOG: "+zeros.join(", ");}

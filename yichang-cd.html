@@ -128,7 +128,6 @@ function renderStock(){
     return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
   }).join("");
   document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
-  window.renderDonut("donutCard", stock, PRODS, LIMIT, "YICHANG CD");
   const b=document.getElementById("alertBanner");
   if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (120 uds).";}else b.className="alert-banner";
 }
