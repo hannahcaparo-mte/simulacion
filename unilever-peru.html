@@ -28,15 +28,15 @@
     
   <div class="alert-banner" id="alertBanner"></div>
   <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
-  <p class="section-title">Registrar órdenes y movimientos</p>
+  
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('op')">Orden de Pedido para CETLOG</button>
-    <button class="tab" onclick="switchTab('oc')">Orden de Compra a UNILEVER MEXICO</button>
+    <button class="tab active" onclick="switchTab('op')">Orden de Pedido para Cetlog</button>
+    <button class="tab" onclick="switchTab('oc')">Orden de Compra a Unilever Mexico</button>
   </div>
 
   <div class="tab-content active" id="tab-op">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si hay stock en CETLOG, pídele que despache al comprador.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si hay stock en Cetlog, pídele que despache al comprador.</p>
       <div id="opPicker"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div class="field"><label>Destino final</label>
@@ -52,7 +52,7 @@
 
   <div class="tab-content" id="tab-oc">
     <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele que le envíe stock a UNILEVER MEXICO.</p>
+      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele que le envíe stock a Unilever Mexico.</p>
       <div id="ocPicker"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div class="field" style="display:flex;align-items:flex-end;">
@@ -183,7 +183,7 @@ function renderDispatchNotifs(rows){
     const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad}cj`).join(", ") : `${r.producto} ×${r.cantidad}cj`;
     return `<div style="padding:8px 10px;border-left:3px solid #1D9E75;background:#E1F5EE;margin-bottom:6px;border-radius:4px;font-size:13px;">
       <strong>📦 CETLOG despachó:</strong> ${itemsTxt} → ${dest}
-      <div style="font-size:11px;color:#0F6E56;margin-top:2px;">${t} · Puedes pausar tu timer si tenías una orden pendiente.</div>
+      <div style="font-size:11px;color:#0F6E56;margin-top:2px;">${t} · Ya puedes pausar tu timer.</div>
     </div>`;
   }).join("");
 }
@@ -226,7 +226,7 @@ window.enviarOC=async function(){
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
   ocPicker.reset();
 
-  showAlert(al,`Orden de compra enviada a UNILEVER MEX (${items.length} producto(s)).`,false);
+  showAlert(al,`Orden de compra enviada a Unilever Mexico (${items.length} producto(s)).`,false);
 };
 
 window.switchTab=function(t){

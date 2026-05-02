@@ -149,8 +149,8 @@ function renderHist(rows){
     <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
     <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
     <td>${r.producto}</td>
-    <td style="font-weight:500;color:${r.direccion==="salida"?"#A32D2D":"#0F6E56"}">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
-    <td>${r.direccion==="salida"?"Salida ↑":"Entrada ↓"}</td>
+    <td style="font-weight:500;color:${r.direccion==="salida"?"#A32D2D":r.direccion==="solicitud"?"#888780":"#0F6E56"}">${r.direccion==="salida"?"-":r.direccion==="solicitud"?"":"+"}${r.cantidad} uds</td>
+    <td>${r.direccion==="salida"?"Salida ↑":r.direccion==="solicitud"?"Solicitud →":"Entrada ↓"}</td>
     <td style="font-size:12px;color:#888780">${r.notas||""}</td>
   </tr>`).join("");
 }
@@ -165,6 +165,7 @@ function renderLlegadas(rows){
       <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
       <div class="order-detail">De: TOTTUS CD · ${t}</div>
       <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Ve a la pestaña "Registrar llegada de inventario" para sumarlo al stock manualmente.</p>
+      <button class="btn" style="width:100%;margin-top:6px;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="marcarRegistrado('${o.id}')">✓ Registrado</button>
     </div>`;
     return `<div class="order-item pendiente" style="margin-bottom:8px;">
       <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds</div>
@@ -200,6 +201,9 @@ window.pedirStock=async function(){
   const al=document.getElementById("pdAlert");
   if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
   await addDoc(collection(db,"pedidos"),{destino:"TOTTUS_CD",tipo:"transf-salida",items,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
+  for(const it of items){
+    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"transf-salida",producto:it.producto,cantidad:it.cantidad,direccion:"solicitud",notas:"Solicitud de transferencia a TOTTUS CD",manual:true,timestamp:serverTimestamp()});
+  }
   pdPicker.reset();
   showAlert(al,`Solicitud enviada a TOTTUS CD (${items.length} producto(s)).`,false);
 };
