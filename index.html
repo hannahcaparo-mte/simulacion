@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Asistencias</title>
+<style>
+:root {
+  --navy: #00174D;
+  --navy-light: #1a2e63;
+  --orange: #F17900;
+  --orange-dark: #d96d00;
+  --gray: #E6E6E6;
+  --gray-dark: #b8b8b8;
+  --text: #1a1a1a;
+  --text-soft: #5a5a5a;
+  --white: #ffffff;
+  --success-bg: #e8f5e9;
+  --success-fg: #1b5e20;
+  --error-bg: #ffebee;
+  --error-fg: #b71c1c;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background-color: #00174D; /* fallback si la imagen no carga */
+  background-image: url('FONDO-POWERBI_4.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  color: var(--text);
+}
+
+/* En pantallas muy angostas o verticales, mostrar imagen completa sin recortar */
+@media (max-aspect-ratio: 1/1) {
+  body {
+    background-size: contain;
+  }
+}
+
+.container {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.05);
+  width: 100%;
+  max-width: 640px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 23, 77, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+/* ============ HEADER ============ */
+.header {
+  background: var(--navy);
+  color: white;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 4px solid var(--orange);
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.header-text { flex: 1; }
+.header-text h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.header-text p {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+.datetime-display { text-align: right; }
+.datetime-display .date {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+  text-transform: capitalize;
+}
+.datetime-display .time {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 2px;
+  color: var(--orange);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ CONTENT ============ */
+.content { padding: 36px 32px 32px; }
+
+#messageContainer { min-height: 0; }
+
+.message {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 22px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.message.success {
+  background: var(--success-bg);
+  color: var(--success-fg);
+  border-left: 4px solid var(--success-fg);
+}
+
+.message.error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  border-left: 4px solid var(--error-fg);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ DNI INPUT STAGE ============ */
+.dni-stage { text-align: center; }
+
+.dni-stage .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#dniInput {
+  width: 100%;
+  max-width: 360px;
+  padding: 22px 20px;
+  border: 2px solid var(--gray);
+  border-radius: 12px;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 8px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+  background: #fafafa;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+#dniInput::placeholder {
+  color: var(--gray-dark);
+  letter-spacing: 6px;
+  font-weight: 400;
+}
+
+#dniInput:focus {
+  outline: none;
+  border-color: var(--orange);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(241, 121, 0, 0.15);
+}
+
+.dni-stage .hint {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-soft);
+  letter-spacing: 0.5px;
+}
+
+.dni-stage .hint strong {
+  color: var(--orange);
+  font-weight: 700;
+}
+
+/* ============ INFO CARD STAGE ============ */
+.info-stage {
+  display: none;
+  animation: slideIn 0.3s ease;
+}
+
+.info-stage.show { display: block; }
+
+.user-header {
+  text-align: center;
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid var(--gray);
+}
+
+.user-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.user-dni {
+  font-size: 14px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.info-item {
+  background: #f7f8fb;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--navy);
+}
+
+.info-item.full { grid-column: 1 / -1; }
+
+.info-item .label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.info-item .value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pagado { background: #d4edda; color: #155724; }
+.status-no-pagado { background: #f8d7da; color: #721c24; }
+.status-retirado { background: #fff3cd; color: #856404; }
+.status-unknown { background: var(--gray); color: var(--text-soft); }
+
+/* ============ ENTER PROMPT ============ */
+.enter-prompt {
+  text-align: center;
+  padding: 18px;
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+  color: white;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  box-shadow: 0 6px 16px rgba(241, 121, 0, 0.3);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.enter-prompt .key {
+  display: inline-block;
+  background: white;
+  color: var(--orange-dark);
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin: 0 4px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 6px 16px rgba(241, 121, 0, 0.3); }
+  50% { box-shadow: 0 6px 24px rgba(241, 121, 0, 0.55); }
+}
+
+.loading {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ FOOTER ============ */
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-soft);
+  padding: 14px;
+  background: #fafafa;
+  border-top: 1px solid var(--gray);
+  letter-spacing: 0.5px;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+    gap: 12px;
+  }
+  .datetime-display { text-align: center; }
+  .content { padding: 28px 20px 24px; }
+  #dniInput { font-size: 26px; letter-spacing: 5px; padding: 18px 14px; }
+  .info-grid { grid-template-columns: 1fr; }
+  .user-name { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">
+      <img src="LOGO.png" alt="Logo" onerror="this.parentElement.innerHTML='<div style=&quot;font-size:30px;color:#00174D;font-weight:700;&quot;>📋</div>'">
+    </div>
+    <div class="header-text">
+      <h1>Asistencias</h1>
+      <p>Registro de Entrada</p>
+    </div>
+    <div class="datetime-display">
+      <div class="date" id="dateDisplay">--</div>
+      <div class="time" id="timeDisplay">--:--</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="messageContainer"></div>
+
+    <!-- ETAPA 1: Ingreso de DNI -->
+    <div class="dni-stage" id="dniStage">
+      <span class="label">Ingrese su DNI</span>
+      <input
+        type="text"
+        id="dniInput"
+        placeholder="00000000"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="8"
+        autocomplete="off"
+        autofocus
+      >
+      <p class="hint">8 dígitos · Presione <strong>ENTER</strong> para buscar</p>
+    </div>
+
+    <!-- ETAPA 2: Información del usuario -->
+    <div class="info-stage" id="infoStage">
+      <div class="user-header">
+        <div class="user-name" id="nameDisplay">--</div>
+        <div class="user-dni">DNI: <span id="dniDisplay">--</span></div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Período</div>
+          <div class="value" id="periodoDisplay">--</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Turno</div>
+          <div class="value" id="turnoDisplay">--</div>
+        </div>
+        <div class="info-item full">
+          <div class="label">Programa</div>
+          <div class="value" id="programaDisplay">--</div>
+        </div>
+        <div class="info-item full">
+          <div class="label">Situación</div>
+          <div class="value">
+            <span id="situacionDisplay" class="status-badge status-unknown">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="enter-prompt" id="enterPrompt">
+        Presione <span class="key">ENTER</span> para marcar asistencia
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Sistema de Asistencias</div>
+</div>
+
+<script>
+// ============================================
+// CONFIGURACIÓN
+// ============================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbwE5peYZz4WfcnXvRMP5TbpCgNx1S7PC1RWm33rJF_OfAglzQ7ciPn-Y_fRaHcnqGTg/exec';
+
+// ============================================
+// ESTADO
+// ============================================
+let currentUser = null;
+let stage = 'dni'; // 'dni' | 'loading' | 'confirm' | 'marking'
+
+const dniInput = document.getElementById('dniInput');
+const dniStage = document.getElementById('dniStage');
+const infoStage = document.getElementById('infoStage');
+const enterPrompt = document.getElementById('enterPrompt');
+
+// ============================================
+// RELOJ
+// ============================================
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById('dateDisplay').textContent =
+    now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  document.getElementById('timeDisplay').textContent =
+    now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+// ============================================
+// JSONP
+// ============================================
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Tiempo de espera agotado'));
+    }, 20000);
+
+    const script = document.createElement('script');
+
+    function cleanup() {
+      try { delete window[callbackName]; } catch(e) { window[callbackName] = undefined; }
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timeoutId);
+    }
+
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    const queryParams = new URLSearchParams({ ...params, callback: callbackName });
+    script.src = `${API_URL}?${queryParams.toString()}`;
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('No se pudo conectar al servidor'));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+// ============================================
+// INPUT: solo números, máximo 8 dígitos
+// ============================================
+dniInput.addEventListener('input', (e) => {
+  // Eliminar todo lo que no sea dígito y limitar a 8
+  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 8);
+  if (cleaned !== e.target.value) {
+    e.target.value = cleaned;
+  }
+});
+
+// Bloquear pegar texto que no sea numérico
+dniInput.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const cleaned = text.replace(/\D/g, '').slice(0, 8);
+  dniInput.value = cleaned;
+});
+
+// ============================================
+// LISTENER GLOBAL DE ENTER
+// (maneja ambas etapas — buscar y marcar)
+// ============================================
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+
+  if (stage === 'dni') {
+    e.preventDefault();
+    searchDNI();
+  } else if (stage === 'confirm') {
+    e.preventDefault();
+    markAttendance();
+  }
+  // En 'loading' o 'marking' se ignora
+});
+
+// Mantener foco en el input cuando estamos en etapa DNI
+// (por si el usuario tocara accidentalmente algo)
+document.addEventListener('click', () => {
+  if (stage === 'dni') dniInput.focus();
+});
+
+window.addEventListener('focus', () => {
+  if (stage === 'dni') dniInput.focus();
+});
+
+// ============================================
+// BÚSQUEDA POR DNI
+// ============================================
+async function searchDNI() {
+  const dni = dniInput.value.trim();
+
+  // Validación local: debe tener exactamente 8 dígitos
+  if (dni.length !== 8) {
+    showMessage('El DNI debe tener 8 dígitos', 'error');
+    dniInput.value = '';
+    dniInput.focus();
+    return;
+  }
+
+  stage = 'loading';
+  dniInput.disabled = true;
+  showLoadingMessage('Buscando...');
+
+  try {
+    const result = await jsonp({ action: 'search', dni: dni });
+
+    if (result.success) {
+      currentUser = result.user;
+      displayUserInfo(result.user);
+      clearMessage();
+      // Cambiar a etapa de confirmación
+      dniStage.style.display = 'none';
+      infoStage.classList.add('show');
+      stage = 'confirm';
+      dniInput.disabled = false;
+    } else {
+      showMessage(result.message || 'DNI no encontrado', 'error');
+      resetToInputStage();
+    }
+  } catch (err) {
+    showMessage('Error: ' + err.message, 'error');
+    resetToInputStage();
+  }
+}
+
+// ============================================
+// MARCAR ASISTENCIA
+// ============================================
+async function markAttendance() {
+  if (!currentUser) return;
+
+  stage = 'marking';
+  enterPrompt.innerHTML = '<span class="loading"></span> Registrando asistencia...';
+
+  try {
+    const result = await jsonp({
+      action: 'mark',
+      dni: currentUser.dni,
+      nombre: currentUser.nombre
+    });
+
+    if (result.success) {
+      const hora = (result.attendance && result.attendance.hora) || '';
+      enterPrompt.innerHTML = '✓ Asistencia registrada' + (hora ? ' · ' + hora : '');
+      enterPrompt.style.background = 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)';
+      enterPrompt.style.boxShadow = '0 6px 16px rgba(46,125,50,0.3)';
+      enterPrompt.style.animation = 'none';
+
+      setTimeout(() => {
+        resetToInputStage();
+      }, 1800);
+    } else {
+      showMessage(result.message || 'Error al registrar', 'error');
+      restoreEnterPrompt();
+      stage = 'confirm';
+    }
+  } catch (err) {
+    showMessage('Error: ' + err.message, 'error');
+    restoreEnterPrompt();
+    stage = 'confirm';
+  }
+}
+
+// ============================================
+// UI HELPERS
+// ============================================
+function displayUserInfo(user) {
+  document.getElementById('nameDisplay').textContent = user.nombre || '--';
+  document.getElementById('dniDisplay').textContent = user.dni || '--';
+  document.getElementById('periodoDisplay').textContent = user.periodo || '--';
+  document.getElementById('programaDisplay').textContent = user.programa || '--';
+  document.getElementById('turnoDisplay').textContent = user.turno || '--';
+
+  const sit = (user.situacion || '').toString().toUpperCase().trim();
+  const sitEl = document.getElementById('situacionDisplay');
+  sitEl.textContent = sit || 'DESCONOCIDO';
+  sitEl.className = 'status-badge';
+
+  if (sit.includes('NO') && sit.includes('PAG')) {
+    sitEl.classList.add('status-no-pagado');
+  } else if (sit.includes('PAGAD')) {
+    sitEl.classList.add('status-pagado');
+  } else if (sit.includes('RETIR')) {
+    sitEl.classList.add('status-retirado');
+  } else {
+    sitEl.classList.add('status-unknown');
+  }
+}
+
+function restoreEnterPrompt() {
+  enterPrompt.innerHTML = 'Presione <span class="key">ENTER</span> para marcar asistencia';
+  enterPrompt.style.background = '';
+  enterPrompt.style.boxShadow = '';
+  enterPrompt.style.animation = '';
+}
+
+function resetToInputStage() {
+  currentUser = null;
+  stage = 'dni';
+  dniInput.disabled = false;
+  dniInput.value = '';
+  infoStage.classList.remove('show');
+  dniStage.style.display = 'block';
+  restoreEnterPrompt();
+  dniInput.focus();
+}
+
+function showMessage(text, type) {
+  const c = document.getElementById('messageContainer');
+  c.innerHTML = `<div class="message ${type}">${text}</div>`;
+  if (type === 'success') {
+    setTimeout(() => { if (c.firstChild) c.innerHTML = ''; }, 3000);
+  } else {
+    setTimeout(() => { if (c.firstChild) c.innerHTML = ''; }, 4000);
+  }
+}
+
+function showLoadingMessage(text) {
+  const c = document.getElementById('messageContainer');
+  c.innerHTML = `<div class="message success" style="background:#e3f2fd;color:#0d47a1;border-left-color:#0d47a1;"><span class="loading" style="border-top-color:#0d47a1;"></span> ${text}</div>`;
+}
+
+function clearMessage() {
+  document.getElementById('messageContainer').innerHTML = '';
+}
+
+// Foco inicial
+dniInput.focus();
+</script>
+
+</body>
+</html>
