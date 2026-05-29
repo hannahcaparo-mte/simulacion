@@ -39,6 +39,18 @@ window.itemsRemaining = function(orden, albaranesDeOrden) {
 window.itemsAnyDelivered = function(rem) { return rem.some(r => r.entregado > 0); };
 window.itemsAllDelivered = function(rem) { return rem.every(r => r.pendiente === 0); };
 
+/* Ordena: órdenes activas primero, cerradas al final; cada grupo por timestamp desc */
+window.__sortOrders = function(arr){
+  const closed=["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"];
+  return arr.slice().sort((a,b)=>{
+    const ca=closed.includes(a.estado)?1:0, cb=closed.includes(b.estado)?1:0;
+    if(ca!==cb) return ca-cb;
+    const ta=a.timestamp?(a.timestamp.toMillis?a.timestamp.toMillis():+new Date(a.timestamp)):0;
+    const tb=b.timestamp?(b.timestamp.toMillis?b.timestamp.toMillis():+new Date(b.timestamp)):0;
+    return tb-ta;
+  });
+};
+
 /* Estado computado */
 window.computeOrderState = function(orden, albaranes, completedKey="recibido") {
   if (orden.estado === "cancelado") return "cancelado";
@@ -51,7 +63,31 @@ window.computeOrderState = function(orden, albaranes, completedKey="recibido") {
   return wasOverdue ? "atrasado" : "pendiente";
 };
 
+/* Deduce si este albarán completa la orden (entrega lo que faltaba)
+   o es parcial (aún queda pendiente después de este albarán).
+   orderItems: items de la orden. accumulated: ya entregado antes (sin este albarán).
+   deliveringNow: items de este albarán. */
+window.deduceTipoEntrega = function(orderItems, accumulated, deliveringNow) {
+  const order = {};
+  for (const it of orderItems) order[it.producto] = it.cantidad;
+  const afterDelivery = {...accumulated};
+  for (const it of deliveringNow) afterDelivery[it.producto] = (afterDelivery[it.producto]||0) + it.cantidad;
+  // ¿Queda algo pendiente luego de este albarán?
+  for (const p in order) {
+    if ((afterDelivery[p]||0) < order[p]) return "parcial";
+  }
+  return "completa";
+};
+
 /* Header */
+window.renderPenCount = function(count) {
+  const el = document.getElementById("penCount");
+  if (el) {
+    el.querySelector(".penc-val").textContent = count || 0;
+    el.classList.toggle("has-pen", (count||0) > 0);
+  }
+};
+
 window.renderHeader = function(stock, limit, accentColor) {
   const total = window.PRODS.reduce((a,p) => a+(stock[p]||0), 0);
   const pills = document.getElementById("stockPills");
@@ -190,55 +226,102 @@ window.startCompletionWatcher = function(db, fns, ordenesObservable, albaranesBy
 
 /* Render de tarjeta de orden */
 window.renderOrderCard = function(orden, options = {}) {
-  const items = (orden.items||[]).map(it => `${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
   const albs = options.albaranes || [];
   const rem = window.itemsRemaining(orden, albs);
   const computedState = window.computeOrderState(orden, albs, options.completedKey||"recibido");
   const stateLabel = {
     pendiente: "Pendiente", parcial: "Parcial", atrasado: "Atrasado",
-    recibido: "✓ Recibido", enviado: "✓ Enviado",
+    recibido: "Recibido", enviado: "Enviado",
     recibido_tarde: "Recibido tarde", enviado_tarde: "Enviado tarde",
     cancelado: "Cancelado"
   }[computedState] || computedState;
+  const stateIcon = {
+    pendiente: "○", parcial: "◐", atrasado: "!",
+    recibido: "✓", enviado: "✓",
+    recibido_tarde: "✓", enviado_tarde: "✓", cancelado: "×"
+  }[computedState] || "";
 
-  let progressLine = "";
-  if (window.itemsAnyDelivered(rem) && !["recibido","enviado","cancelado"].includes(computedState)) {
-    const txt = rem.map(r => `${window.shortProd(r.producto)}: ${r.entregado}/${r.pedido}`).join(" · ");
-    progressLine = `<div class="oc-progress">📦 ${txt}</div>`;
+  // Lista de items con chips de color
+  const itemChips = (orden.items||[]).map(it => {
+    const col = window.COLORS[it.producto] || "#888780";
+    return `<span class="oc-chip"><span class="oc-chip-dot" style="background:${col}"></span>${window.shortProd(it.producto)} <b>×${it.cantidad}</b></span>`;
+  }).join("");
+
+  // Barra de progreso por producto (cuando hay algo entregado y no está completa/cancelada)
+  let progressHtml = "";
+  const anyDelivered = window.itemsAnyDelivered(rem);
+  const isClosed = ["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(computedState);
+  if (anyDelivered && !["pendiente","cancelado"].includes(computedState)) {
+    const bars = rem.map(r => {
+      const pct = r.pedido ? Math.min(100, Math.round(r.entregado/r.pedido*100)) : 0;
+      const col = window.COLORS[r.producto] || "#888780";
+      const done = r.pendiente === 0;
+      return `<div class="oc-pbar-row">
+        <span class="oc-pbar-label"><span class="oc-chip-dot" style="background:${col}"></span>${window.shortProd(r.producto)}</span>
+        <div class="oc-pbar-track"><div class="oc-pbar-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="oc-pbar-num ${done?'done':''}">${r.entregado}/${r.pedido}</span>
+      </div>`;
+    }).join("");
+    progressHtml = `<div class="oc-progress-box">${bars}</div>`;
   }
 
   let timerHtml = "";
   if (options.showTimer && ["pendiente","parcial"].includes(computedState)) {
     timerHtml = `<div class="oc-timer" id="tmr-${orden.id}" data-deadline="${orden.deadlineMs||0}" data-accent="${options.accentColor||'#1D9E75'}" style="color:${options.accentColor||'#1D9E75'}">3:00</div>`;
   } else if (computedState === "atrasado" && options.showTimer) {
-    timerHtml = `<div class="oc-timer expired">¡VENCIDO!</div>`;
+    timerHtml = `<div class="oc-timer expired">⏱ VENCIDO</div>`;
   }
 
   let actionsHtml = "";
   if (options.showCancel && ["pendiente","parcial","atrasado"].includes(computedState)) {
-    actionsHtml = `<div class="oc-actions"><button class="oc-btn cancel" onclick="${options.onCancel}('${orden.id}','${orden.codigo}')">Cancelar orden</button></div>`;
+    actionsHtml = `<div class="oc-actions"><button class="oc-btn cancel" onclick="${options.onCancel}('${orden.id}','${orden.codigo}')">Cancelar</button></div>`;
   }
 
-  const refTxt = orden.referencia ? `<br>Ref: <span style="font-family:Menlo,monospace">${orden.referencia}</span>` : "";
+  // Metadatos en línea limpia
   const meta = [];
-  if (orden.emisor && orden.emisor !== options.viewerId) meta.push(`De: ${window.AGENT_LABEL[orden.emisor]||orden.emisor}`);
-  if (orden.destino && orden.destino !== options.viewerId) meta.push(`A: ${window.AGENT_LABEL[orden.destino]||orden.destino}`);
-  if (orden.cliente) meta.push(`Cliente: ${orden.cliente}`);
-  if (orden.tipoVenta) meta.push(`Tipo: ${orden.tipoVenta}`);
-  if (orden.destinoFinal && orden.destinoFinal !== orden.destino) meta.push(`→ ${window.AGENT_LABEL[orden.destinoFinal]||orden.destinoFinal}`);
-  const tm = orden.timestamp ? new Date(orden.timestamp.toDate ? orden.timestamp.toDate() : orden.timestamp).toLocaleTimeString("es-PE") : "—";
+  if (orden.emisor && orden.emisor !== options.viewerId) meta.push(`de ${window.AGENT_LABEL[orden.emisor]||orden.emisor}`);
+  if (orden.destino && orden.destino !== options.viewerId) meta.push(`a ${window.AGENT_LABEL[orden.destino]||orden.destino}`);
+  if (orden.cliente) meta.push(orden.cliente);
+  if (orden.destinoFinal && orden.destinoFinal !== orden.destino && orden.destinoFinal !== options.viewerId) meta.push(`→ ${window.AGENT_LABEL[orden.destinoFinal]||orden.destinoFinal}`);
+  const tm = orden.timestamp ? new Date(orden.timestamp.toDate ? orden.timestamp.toDate() : orden.timestamp).toLocaleTimeString("es-PE",{hour:'2-digit',minute:'2-digit'}) : "";
+  const refChip = orden.referencia ? `<span class="oc-ref">ref ${orden.referencia}</span>` : "";
 
   return `<div class="order-card ${computedState}">
     <div class="oc-head">
-      <span class="oc-codigo">${orden.codigo}</span>
-      <span class="estado-badge ${computedState}">${stateLabel}</span>
+      <button class="oc-codigo-btn" onclick="window.copyCode('${orden.codigo}',this)" title="Copiar código">
+        <span class="oc-codigo-txt">${orden.codigo}</span>
+        <span class="oc-copy-ic">⧉</span>
+      </button>
+      <span class="estado-badge ${computedState}"><span class="eb-ic">${stateIcon}</span>${stateLabel}</span>
     </div>
-    <div class="oc-items">${items}</div>
-    <div class="oc-meta">${tm} · ${meta.join(" · ")}${refTxt}</div>
-    ${progressLine}
+    <div class="oc-chips">${itemChips}</div>
+    ${progressHtml}
+    <div class="oc-foot">
+      <span class="oc-meta-line">${tm}${meta.length?' · '+meta.join(' · '):''}</span>
+      ${refChip}
+    </div>
     ${timerHtml}
     ${actionsHtml}
   </div>`;
+};
+
+/* Copiar código al portapapeles con feedback visual */
+window.copyCode = function(code, btn) {
+  navigator.clipboard.writeText(code).then(() => {
+    const ic = btn.querySelector(".oc-copy-ic");
+    const prev = ic.textContent;
+    ic.textContent = "✓";
+    btn.classList.add("copied");
+    setTimeout(() => { ic.textContent = prev; btn.classList.remove("copied"); }, 1200);
+  }).catch(()=>{
+    // Fallback
+    const ta = document.createElement("textarea");
+    ta.value = code; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch(e){}
+    document.body.removeChild(ta);
+    const ic = btn.querySelector(".oc-copy-ic");
+    ic.textContent = "✓"; setTimeout(()=>ic.textContent="⧉",1200);
+  });
 };
 
 /* Updater de timers globales */

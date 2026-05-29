@@ -24,6 +24,7 @@
       </div>
     </div>
     <div class="stock-header">
+      <div class="pen-count-badge" id="penCount"><span class="penc-label">Penaliz.</span><span class="penc-val">0</span></div>
       <div class="stock-pills-h" id="stockPills"></div>
       <div class="stock-cap" id="stockCap"></div>
     </div>
@@ -44,8 +45,6 @@
     <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Ventas activas (OVEN)</button>
     <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Compras activas (OCOM)</button>
     <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('hist',this)">Historial</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('pen',this)">Penalizaciones <span class="tab-supply-badge" id="penBadge">0</span></button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oven"><div id="ovenContainer"></div></div>
@@ -54,8 +53,6 @@
     <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden</th><th>Items</th><th>Entrega</th></tr></thead>
     <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
   </table></div></div>
-  <div class="tab-content-supply" id="tab-hist"><div id="histContainer"></div></div>
-  <div class="tab-content-supply" id="tab-pen"><div id="penContainer"></div></div>
 </div></div>
 
 <div class="right-panel">
@@ -103,8 +100,6 @@
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="dpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mDesp.addRow()">+ Agregar producto</button></div>
-      <div class="modal-field"><label class="modal-label">Tipo de entrega</label>
-        <select id="dpTipo" class="modal-select"><option value="parcial">Parcial</option><option value="completa">Completa</option></select></div>
       <div class="alert-m" id="dpAlert"></div>
     </div>
     <div class="modal-footer">
@@ -149,8 +144,6 @@
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="rpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mRecep.addRow()">+ Agregar producto</button></div>
-      <div class="modal-field"><label class="modal-label">Tipo de entrada</label>
-        <select id="rpTipo" class="modal-select"><option value="parcial">Parcial</option><option value="completa">Completa</option></select></div>
       <div class="alert-m" id="rpAlert"></div>
     </div>
     <div class="modal-footer">
@@ -188,7 +181,7 @@ window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpP
 })();
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
-  ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN(); renderOCOM(); renderHist();
+  ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN(); renderOCOM();
 });
 onSnapshot(query(collection(db,"albaranes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   albaranes=[]; s.forEach(d=>albaranes.push({id:d.id,...d.data()})); renderAlb(); renderOVEN(); renderOCOM();
@@ -199,7 +192,7 @@ onSnapshot(query(collection(db,"notificaciones"),where("destinatario","==",ID),o
 });
 onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
-  window.renderPenList("penContainer","penBadge",r,"YICHANG");
+  window.renderPenCount(r.length);
 });
 
 // Yichang es responsable de sus OVEN (debe despachar a Don Tito)
@@ -216,13 +209,13 @@ function albEntrada(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==
 
 function renderOVEN(){
   const c=document.getElementById("ovenContainer");
-  const a=ordenes.filter(o=>o.prefix==="YI-OVEN" && !["enviado","enviado_tarde","cancelado"].includes(o.estado));
+  const a=window.__sortOrders(ordenes.filter(o=>o.prefix==="YI-OVEN"));
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albSalida(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin ventas activas.</p>';
 }
 function renderOCOM(){
   const c=document.getElementById("ocomContainer");
-  const a=ordenes.filter(o=>o.prefix==="YI-OCOM" && !["recibido","recibido_tarde","cancelado"].includes(o.estado));
+  const a=window.__sortOrders(ordenes.filter(o=>o.prefix==="YI-OCOM"));
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albEntrada(o.codigo),completedKey:"recibido",viewerId:ID})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin compras activas.</p>';
 }
@@ -234,12 +227,6 @@ function renderAlb(){
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
     return `<tr><td class="codigo">${a.codigo}</td><td style="color:#888780">${t}</td><td><span class="estado-badge ${a.tipo==="salida"?"enviado":"recibido"}">${a.tipo}</span></td><td class="codigo">${a.codigoOrden||"—"}</td><td>${items}</td><td>${a.tipoEntrega||"—"}</td></tr>`;
   }).join("");
-}
-function renderHist(){
-  const c=document.getElementById("histContainer");
-  const cer=ordenes.filter(o=>["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(o.estado));
-  c.innerHTML=cer.length?cer.map(o=>window.renderOrderCard(o,{albaranes:o.prefix==="YI-OVEN"?albSalida(o.codigo):albEntrada(o.codigo),completedKey:o.prefix==="YI-OVEN"?"enviado":"recibido",viewerId:ID})).join("")
-    :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin órdenes cerradas.</p>';
 }
 
 window.marcarRegistrada=async function(id){ await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"}); };
@@ -275,7 +262,6 @@ window.cargarOVEN=async function(){
 window.crearDESP=async function(){
   const codigo=document.getElementById("dpCodigo").value.trim();
   const items=mDesp.getItems();
-  const tipo=document.getElementById("dpTipo").value;
   if(!codigo){ mDesp.alert("Ingresa un código.",true); return; }
   if(!items.length){ mDesp.alert("Agrega al menos un producto.",true); return; }
   const o=ordenes.find(x=>x.codigo===codigo && x.prefix==="YI-OVEN");
@@ -283,6 +269,7 @@ window.crearDESP=async function(){
   if(["enviado","cancelado","enviado_tarde"].includes(o.estado)){ mDesp.alert(`${codigo} ya está ${o.estado}.`,true); return; }
   const accum={}; for(const a of albSalida(codigo)) for(const it of (a.items||[])) accum[it.producto]=(accum[it.producto]||0)+it.cantidad;
   const val=window.validateDelivery(o.items,items,accum);
+  const tipo=window.deduceTipoEntrega(o.items,accum,items);
   if(!val.ok){ mDesp.alert(val.error,true); return; }
   for(const it of items){
     if((stock[it.producto]||0)<it.cantidad){ mDesp.alert(`Stock insuficiente: ${window.shortProd(it.producto)} (tienes ${stock[it.producto]||0}).`,true); return; }
@@ -333,7 +320,6 @@ window.cargarOCOM=async function(){
 window.crearRECEP=async function(){
   const codigo=document.getElementById("rpCodigo").value.trim();
   const items=mRecep.getItems();
-  const tipo=document.getElementById("rpTipo").value;
   if(!codigo){ mRecep.alert("Ingresa un código de OCOM.",true); return; }
   if(!items.length){ mRecep.alert("Agrega al menos un producto.",true); return; }
   const o=ordenes.find(x=>x.codigo===codigo && x.prefix==="YI-OCOM");
@@ -341,6 +327,7 @@ window.crearRECEP=async function(){
   if(["recibido","cancelado","recibido_tarde"].includes(o.estado)){ mRecep.alert(`${codigo} ya está ${o.estado}.`,true); return; }
   const accum={}; for(const a of albEntrada(codigo)) for(const it of (a.items||[])) accum[it.producto]=(accum[it.producto]||0)+it.cantidad;
   const val=window.validateDelivery(o.items,items,accum);
+  const tipo=window.deduceTipoEntrega(o.items,accum,items);
   if(!val.ok){ mRecep.alert(val.error,true); return; }
   const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;

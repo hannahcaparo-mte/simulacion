@@ -24,6 +24,7 @@
       </div>
     </div>
     <div class="stock-header">
+      <div class="pen-count-badge" id="penCount"><span class="penc-label">Penaliz.</span><span class="penc-val">0</span></div>
       <div class="stock-pills-h" id="stockPills"></div>
       <div class="stock-cap" id="stockCap"></div>
     </div>
@@ -53,7 +54,6 @@
     <p style="font-size:12px;color:#888780;margin-bottom:10px;">Feed de movimientos de CETLOG en tiempo real (despachos y recepciones). Úsalo para actualizar el estado de tus órdenes.</p>
     <div id="movContainer"></div>
   </div>
-  <div class="tab-content-supply" id="tab-pen"><div id="penContainer"></div></div>
 </div></div>
 
 <div class="right-panel">
@@ -154,7 +154,7 @@ onSnapshot(query(collection(db,"movimientos"),where("empresa","==","CETLOG"),ord
 
 onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
-  window.renderPenList("penContainer","penBadge",r,"UNILEVER PERÚ");
+  window.renderPenCount(r.length);
 });
 
 // UP solo coordina: no corre watcher de expiración (no despacha físicamente).
