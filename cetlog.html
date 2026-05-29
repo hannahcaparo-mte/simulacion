@@ -5,264 +5,313 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CETLOG</title>
   <link rel="stylesheet" href="shared.css"/>
+  <link rel="stylesheet" href="shared-supply.css"/>
+  <style>
+    :root { --c-accent:#534AB7; --c-bg:#EEEDFE; --c-border:#AFA9EC;
+      --c-badge-bg:#AFA9EC; --c-badge-text:#332E76; --c-name:#332E76; }
+  </style>
 </head>
 <body>
-<div class="topbar">
-<div style="display:flex;align-items:center;gap:14px;">
-    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
-  <div>
-    <div class="topbar-title" style="color:#534AB7;">📦 CETLOG</div>
-    <div class="topbar-sub">Almacén de UNILEVER PERÚ</div>
-  </div>
-</div>
-  <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
-</div>
-<div class="with-panel">
-<div class="page">
 
-  <p class="section-title">Stock disponible (en unidades)</p>
-  <div class="stock-grid" id="stockGrid"></div>
-  <div class="total-bar" id="totalBar"></div>
-  <div class="alert-banner" id="alertBanner"></div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('despacho')">Registrar despacho</button>
-    <button class="tab" onclick="switchTab('llegada')">Registrar llegada de inventario</button>
-  </div>
-
-  <div class="tab-content active" id="tab-despacho">
-    <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando te llegue una orden de pedido: Despacha a TOTTUS CD o YICHANG CD → Presiona "Despachado" en el panel derecho.</p>
-      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto(s)</span>
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
-        <span></span>
+<div class="agent-header">
+  <div class="agent-header-inner">
+    <div class="agent-id">
+      <div class="agent-accent"></div>
+      <img src="LOGO.png" alt="logo"/>
+      <div>
+        <div class="agent-name">📦 CETLOG</div>
+        <span class="agent-role-badge">Almacén de UNILEVER PERÚ · cap. 184</span>
       </div>
-      <div id="mvPicker"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-        <div class="field"><label>Destino</label>
-          <select id="mvContra">
-            <option value="TOTTUS_CD">TOTTUS CD</option>
-            <option value="YICHANG_CD">YICHANG CD</option>
-          </select>
-        </div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn primary" style="width:100%" onclick="registrarMov()">Registrar despacho</button>
-        </div>
-      </div>
-      <div class="alert-banner" id="mvAlert"></div>
+    </div>
+    <div class="stock-header">
+      <div class="stock-pills-h" id="stockPills"></div>
+      <div class="stock-cap" id="stockCap"></div>
     </div>
   </div>
+</div>
 
-  <div class="tab-content" id="tab-llegada">
-    <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Cuando llegue inventario de UNILEVER MEX: Regístralo manualmente → Presiona en el botón de registrado</p>
-      <div style="display:grid;grid-template-columns:1.5fr 1fr 32px;gap:8px;margin-bottom:4px;">
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Producto</span>
-        <span style="font-size:12px;font-weight:500;color:#5f5e5a;">Cantidad (en unidades)</span>
-        <span></span>
-      </div>
-      <div id="llegadaPicker"></div>
-      <button class="btn success" onclick="registrarLlegadaManual()" style="margin-top:8px;">Registrar llegada</button>
-      <div class="alert-banner" id="llegadaAlert"></div>
+<div class="with-panel"><div class="page-narrow">
+  <div class="info-box-supply">Recibes OPED de UNILEVER PERÚ y despachas a TOTTUS CD / YICHANG. Recibes inventario de UNILEVER MEX vía notificaciones.</div>
+
+  <div class="action-bar">
+    <button class="btn-action primary" onclick="abrirDESP()">+ Albarán de salida (despacho)</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">+ Albarán de entrada (recepción)</button>
+  </div>
+
+  <div class="tabs-supply">
+    <button class="tab-supply active" onclick="window.switchTabSupply('oped',this)">OPED entrantes de UP</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes registrados</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('hist',this)">Historial</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('pen',this)">Penalizaciones <span class="tab-supply-badge" id="penBadge">0</span></button>
+  </div>
+
+  <div class="tab-content-supply active" id="tab-oped"><div id="opedContainer"></div></div>
+  <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
+    <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden</th><th>Items</th><th>Entrega</th></tr></thead>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+  </table></div></div>
+  <div class="tab-content-supply" id="tab-hist"><div id="histContainer"></div></div>
+  <div class="tab-content-supply" id="tab-pen"><div id="penContainer"></div></div>
+</div></div>
+
+<div class="right-panel">
+  <p class="section-title-sm">Notificaciones de UNILEVER MEX</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra cada llegada vía albarán de entrada.</p>
+  <div id="notifContainer"></div>
+</div>
+
+<!-- Modal DESP (contra OPED de UP) -->
+<div class="modal-overlay" id="mDesp">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title">Albarán de salida</div><div class="modal-sub">CL-DESP · despacha contra OPED de UP. Descuenta stock.</div></div>
+      <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
+    <div class="modal-body">
+      <div class="modal-field"><label class="modal-label">Código de OPED de UP</label>
+        <input type="text" id="dpCodigo" class="modal-input" placeholder="Ej: UP-OPED-001"/>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOPED()">Cargar orden →</button></div>
+      <div class="modal-preview" id="dpPreview" style="display:none"></div>
+      <div class="modal-field"><label class="modal-label">Items a despachar</label>
+        <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
+        <div class="rows-modal" id="dpRows"></div>
+        <button class="row-add-btn" onclick="window.__supply_mDesp.addRow()">+ Agregar producto</button></div>
+      <div class="modal-field"><label class="modal-label">Tipo de entrega</label>
+        <select id="dpTipo" class="modal-select"><option value="parcial">Parcial</option><option value="completa">Completa</option></select></div>
+      <div class="alert-m" id="dpAlert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-m" onclick="window.__supply_mDesp.close()">Cancelar</button>
+      <button class="btn-m primary" onclick="window.crearDESP()">Registrar →</button>
     </div>
   </div>
+</div>
 
-  <p class="section-title">Historial de movimientos</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Contraparte</th></tr></thead>
-      <tbody id="histBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
-    </table>
+<!-- Modal RECEP (entrada de UM contra UP-OCOM) -->
+<div class="modal-overlay" id="mRecep">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title">Albarán de entrada</div><div class="modal-sub">CL-RECEP · registra recepción de UM. Aumenta stock.</div></div>
+      <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
+    <div class="modal-body">
+      <div class="modal-field"><label class="modal-label">Código de OCOM de UP a UM (referencia)</label>
+        <input type="text" id="rpRef" class="modal-input" placeholder="Ej: UP-OCOM-001"/></div>
+      <div class="modal-field"><label class="modal-label">Items recibidos</label>
+        <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
+        <div class="rows-modal" id="rpRows"></div>
+        <button class="row-add-btn" onclick="window.__supply_mRecep.addRow()">+ Agregar producto</button></div>
+      <div class="modal-field"><label class="modal-label">Tipo de entrada</label>
+        <select id="rpTipo" class="modal-select"><option value="parcial">Parcial</option><option value="completa">Completa</option></select></div>
+      <div class="alert-m" id="rpAlert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-m" onclick="window.__supply_mRecep.close()">Cancelar</button>
+      <button class="btn-m primary" onclick="window.crearRECEP()">Registrar →</button>
+    </div>
   </div>
-
-</div>
 </div>
 
-<div class="orders-panel">
-  <p class="section-title">Órdenes y llegadas</p>
-  <p style="font-size:11px;color:#888780;margin:0 0 6px;">Llegadas de UNILEVER MEX</p>
-  <div id="llegadasContainer"><p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p></div>
-  <div style="border-top:1px solid #e5e4de;margin:12px 0;"></div>
-  <p style="font-size:11px;color:#888780;margin:0 0 6px;">Órdenes de pedido de UNILEVER PERÚ</p>
-  <div id="ordersContainer"><p style="font-size:12px;color:#b4b2a9;text-align:center;">Sin órdenes.</p></div>
-</div>
-
-<script src="shared-ui.js"></script>
+<script src="shared-supply.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,query,where,orderBy,runTransaction }
+  from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const ID="CETLOG", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
-const INIT={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48}, LIMIT=184;
-let stock={...INIT}, timers={};
+const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const ID="CETLOG", ACCENT="#534AB7", LIMIT=184;
+const INIT={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
 
-document.getElementById("connStatus").textContent="✓ Conectado";
+let stock={...INIT}, opedEntrantes=[], albaranesMios=[], notifs=[];
 
-const mvPicker = window.createPicker("mvPicker","Unidades");
-const llegadaPicker = window.createPicker("llegadaPicker","Unidades");
-window.llegadaPicker = llegadaPicker;
+const mDesp=window.createSupplyModal("mDesp","dpRows","dpAlert");
+const mRecep=window.createSupplyModal("mRecep","rpRows","rpAlert");
+window.abrirDESP=()=>{ mDesp.open({dpCodigo:""}); document.getElementById("dpPreview").style.display="none"; };
+window.abrirRECEP=()=>mRecep.open({rpRef:""});
 
-(async()=>{ const s=await getDoc(doc(db,"stocks",ID)); if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data(); renderStock(); })();
-onSnapshot(doc(db,"stocks",ID),s=>{if(s.exists()){stock=s.data();renderStock();}});
-onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
+(async()=>{
+  const s=await getDoc(doc(db,"stocks",ID));
+  if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
+  window.renderHeader(stock,LIMIT,ACCENT);
+})();
+onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
+
+// OPED entrantes (UP-OPED donde destino=CETLOG) — yo soy responsable
+onSnapshot(query(collection(db,"ordenes"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
+  opedEntrantes=[]; s.forEach(d=>opedEntrantes.push({id:d.id,...d.data()}));
+  renderOPED(); renderHist();
+});
+onSnapshot(query(collection(db,"albaranes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
+  albaranesMios=[]; s.forEach(d=>albaranesMios.push({id:d.id,...d.data()}));
+  renderAlb(); renderOPED();
+});
+onSnapshot(query(collection(db,"notificaciones"),where("destinatario","==",ID),orderBy("timestamp","desc")),s=>{
+  notifs=[]; s.forEach(d=>notifs.push({id:d.id,...d.data()}));
+  window.renderNotifPanel("notifContainer",notifs,"marcarRegistrada");
+});
+onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
-  renderHist(r.filter(x=>x.manual===true));
-});
-onSnapshot(query(collection(db,"llegadas"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderLlegadas(r);
-});
-onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderOrders(r);
+  window.renderPenList("penContainer","penBadge",r,"CETLOG");
 });
 
-function renderStock(){
-  const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-  const pct=Math.min(100,Math.round(total/LIMIT*100));
-  const isOver=total>=LIMIT; const color=isOver?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
-  document.getElementById("stockGrid").innerHTML=PRODS.map(p=>{
-    const v=stock[p]||0; const st=v===0?"danger":"ok";
-    return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${Math.min(100,Math.round(v/LIMIT*100))}%;background:${st==="ok"?"#1D9E75":"#E24B4A"}"></div></div></div>`;
-  }).join("");
-  document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Stock total</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${LIMIT} uds${isOver?" ⚠ LÍMITE":""}</span>`;
-  const b=document.getElementById("alertBanner");
-  if(isOver){b.className="alert-banner error show";b.textContent="⚠ Stock total en el límite (184 uds).";}else b.className="alert-banner";
+// CETLOG es responsable de UP-OPED (debe despachar)
+window.startExpirationWatcher(db,fns,()=>opedEntrantes,ID);
+// Cuando los CL-DESP cubren la UP-OPED, marcar enviado
+window.startCompletionWatcher(db,fns,()=>opedEntrantes, c=>albaranesMios.filter(a=>a.codigoOrden===c && a.tipo==="salida"),"enviado","salida");
+
+function albForOrden(c){ return albaranesMios.filter(a=>a.codigoOrden===c && a.tipo==="salida"); }
+
+function renderOPED(){
+  const c=document.getElementById("opedContainer");
+  const a=opedEntrantes.filter(o=>!["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(o.estado));
+  c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showTimer:true,accentColor:ACCENT,albaranes:albForOrden(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
+    :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin pedidos pendientes.</p>';
 }
 
-function renderHist(rows){
-  const b=document.getElementById("histBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos registrados.</td></tr>';return;}
-  const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
-  const labels={UNILEVER_MEX:"UNILEVER MEX",TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"};
-  b.innerHTML=rows.map((r,i)=>`<tr>
-    <td style="color:#b4b2a9">${rows.length-i}</td>
-    <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
-    <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
-    <td>${r.producto}</td>
-    <td style="font-weight:500;color:${r.direccion==="salida"?"#A32D2D":"#0F6E56"}">${r.direccion==="salida"?"-":"+"}${r.cantidad} uds</td>
-    <td>${r.direccion==="salida"?"Salida ↑":"Entrada ↓"}</td>
-    <td style="font-size:12px;color:#888780">${labels[r.contraparte]||r.contraparte||""}</td>
-  </tr>`).join("");
-}
-
-function renderLlegadas(rows){
-  const c=document.getElementById("llegadasContainer");
-  if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;margin-bottom:12px;">Sin llegadas.</p>';return;}
-  c.innerHTML=rows.map(o=>{
-    const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    if(o.estado==="registrado") return `<div class="order-item registrado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${o.producto} — ${o.cantidad} uds</div><div class="order-detail">${t} · <span class="badge registrado">✓ En inventario</span></div></div>`;
-    if(o.estado==="confirmada") return `<div class="order-item en-proceso" style="margin-bottom:8px;border-left:3px solid #EF9F27;">
-      <div class="order-title" style="font-size:13px;color:#BA7517;">⚠ Pendiente de registrar: ${o.producto} — ${o.cantidad} uds</div>
-      <div class="order-detail">De: UNILEVER MEX · ${t}</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Ve a la pestaña "Registrar llegada de inventario" para sumarlo al stock manualmente.</p>
-      <button class="btn" style="width:100%;margin-top:6px;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="marcarRegistrado('${o.id}')">✓ Registrado</button>
-    </div>`;
-    return `<div class="order-item pendiente" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;color:#A32D2D;">● Llegó: ${o.producto} — ${o.cantidad} uds de UNILEVER MEX</div>
-      <div class="order-detail">${t}</div>
-      <button class="btn success" style="width:100%;margin-top:6px" onclick="confirmarLlegada('${o.id}')">Confirmar recepción física</button>
-    </div>`;
+function renderAlb(){
+  const b=document.getElementById("albBody");
+  if(!albaranesMios.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  b.innerHTML=albaranesMios.map(a=>{
+    const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+    const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
+    return `<tr><td class="codigo">${a.codigo}</td><td style="color:#888780">${t}</td><td><span class="estado-badge ${a.tipo==="salida"?"enviado":"recibido"}">${a.tipo}</span></td><td class="codigo">${a.codigoOrden||"—"}</td><td>${items}</td><td>${a.tipoEntrega||"—"}</td></tr>`;
   }).join("");
 }
 
-function renderOrders(orders){
-  const c=document.getElementById("ordersContainer");
-  if(!orders.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;">Sin órdenes.</p>';return;}
-  c.innerHTML=orders.map(o=>{
-    const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.destinoFinal]||"—";
-    const itemsTxt=o.items?o.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", "):`${o.producto} ×${o.cantidad} uds`;
-    if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} → ${dest}</div><div class="order-detail">${t} · <span class="badge completado">Despachado</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Vencido</span></div></div>`;
-    if(!timers[o.id]) startTimer(o.id,o.timestamp);
-    return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;">${itemsTxt} → ${dest}</div>
-      <div class="order-detail">UNILEVER PERÚ · ${t}</div>
-      <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">① Registra despacho · ② Presiona Despachado</p>
-      <button class="btn success" style="width:100%" onclick="marcarDespachado('${o.id}')">✓ Despachado</button>
-    </div>`;
-  }).join("");
+function renderHist(){
+  const c=document.getElementById("histContainer");
+  const cer=opedEntrantes.filter(o=>["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(o.estado));
+  c.innerHTML=cer.length?cer.map(o=>window.renderOrderCard(o,{albaranes:albForOrden(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
+    :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin órdenes cerradas.</p>';
 }
 
-function startTimer(oid,ts){
-  if(timers[oid]) return;
-  const dl=ts?(ts.toDate?ts.toDate().getTime():ts)+180000:Date.now()+180000;
-  timers[oid]=setInterval(async()=>{
-    const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
-    if(!el){clearInterval(timers[oid]);return;}
-    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden no despachada en 3 min",timestamp:serverTimestamp()});return;}
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(rem<60000?" warning":"");
-  },500);
-}
-
-window.marcarDespachado=async function(id){
-  clearInterval(timers[id]);
-  const snap=await getDoc(doc(db,"pedidos",id));
-  if(snap.exists()){
-    const o=snap.data();
-    await addDoc(collection(db,"despachos"),{destinoNotif:"UNILEVER_PERU",origen:ID,destinoFinal:o.destinoFinal,items:o.items||null,producto:o.producto||null,cantidad:o.cantidad||null,timestamp:serverTimestamp()});
-  }
-  await updateDoc(doc(db,"pedidos",id),{estado:"completado"});
+window.marcarRegistrada=async function(id){
+  await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"});
 };
 
-window.registrarMov=async function(){
-  const items=mvPicker.getValid();
-  const cp=document.getElementById("mvContra").value;
-  const al=document.getElementById("mvAlert");
-  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
-  const ns={...stock};
-  for(const it of items){
-    if((ns[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente para ${it.producto}.`,true);return;}
-    ns[it.producto]-=it.cantidad;
+window.cargarOPED=async function(){
+  const codigo=document.getElementById("dpCodigo").value.trim();
+  if(!codigo){ mDesp.alert("Ingresa un código.",true); return; }
+  const q=query(collection(db,"ordenes"),where("codigo","==",codigo),where("destino","==",ID));
+  const snap=await getDocs(q);
+  if(snap.empty){ mDesp.alert(`No existe ${codigo} con destino CETLOG.`,true); document.getElementById("dpPreview").style.display="none"; return; }
+  const o={id:snap.docs[0].id,...snap.docs[0].data()};
+  if(["recibido","enviado","cancelado","recibido_tarde","enviado_tarde"].includes(o.estado)){
+    mDesp.alert(`${codigo} ya está ${o.estado}.`,true); return;
   }
+  const albs=albaranesMios.filter(a=>a.codigoOrden===codigo && a.tipo==="salida");
+  const rem=window.itemsRemaining(o,albs);
+  const dest=o.destinoFinal||"—";
+  document.getElementById("dpPreview").style.display="block";
+  document.getElementById("dpPreview").innerHTML=`<b>${codigo}</b> → ${window.AGENT_LABEL[dest]||dest} (ref ${o.referencia||"—"})<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
+  mDesp.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+};
+
+window.crearDESP=async function(){
+  const codigo=document.getElementById("dpCodigo").value.trim();
+  const items=mDesp.getItems();
+  const tipo=document.getElementById("dpTipo").value;
+  if(!codigo){ mDesp.alert("Ingresa un código.",true); return; }
+  if(!items.length){ mDesp.alert("Agrega al menos un producto.",true); return; }
+  const q=query(collection(db,"ordenes"),where("codigo","==",codigo),where("destino","==",ID));
+  const snap=await getDocs(q);
+  if(snap.empty){ mDesp.alert(`No existe ${codigo}.`,true); return; }
+  const o={id:snap.docs[0].id,...snap.docs[0].data()};
+  if(["recibido","enviado","cancelado","recibido_tarde","enviado_tarde"].includes(o.estado)){
+    mDesp.alert(`${codigo} ya está ${o.estado}.`,true); return;
+  }
+  const albs=albaranesMios.filter(a=>a.codigoOrden===codigo && a.tipo==="salida");
+  const accum={}; for(const a of albs) for(const it of (a.items||[])) accum[it.producto]=(accum[it.producto]||0)+it.cantidad;
+  const val=window.validateDelivery(o.items,items,accum);
+  if(!val.ok){ mDesp.alert(val.error,true); return; }
+  for(const it of items){
+    if((stock[it.producto]||0)<it.cantidad){ mDesp.alert(`Stock insuficiente: ${window.shortProd(it.producto)} (tienes ${stock[it.producto]||0}).`,true); return; }
+  }
+  const ns={...stock}; for(const it of items) ns[it.producto]-=it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
-  for(const it of items){
-    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"salida",contraparte:cp,notas:"",manual:true,timestamp:serverTimestamp()});
-    await addDoc(collection(db,"llegadas"),{destino:cp,producto:it.producto,cantidad:it.cantidad,origen:ID,estado:"pendiente",timestamp:serverTimestamp()});
-  }
-  mvPicker.reset();
-  showAlert(al,`✓ ${items.length} producto(s) registrados. Llegada notificada a ${cp==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}. Ahora presiona Despachado.`,false);
+  const codDesp=await window.getNextCode(db,fns,"CL-DESP");
+  const destFinal=o.destinoFinal||"TOTTUS_CD";
+  await addDoc(collection(db,"albaranes"),{
+    codigo:codDesp, prefix:"CL-DESP", emisor:ID, destinatario:destFinal,
+    codigoOrden:codigo, tipo:"salida", items, tipoEntrega:tipo,
+    timestamp:serverTimestamp()
+  });
+  // Notificación al destino final (TCD o YI) con la referencia upstream (TCD-OCOM-NNN o YI-OCOM-NNN)
+  await addDoc(collection(db,"notificaciones"),{
+    destinatario:destFinal, origen:ID, tipoNotif:"llegada",
+    items, codigoOrden:o.referencia||null, codigoAlbaran:codDesp,
+    estado:"pendiente", timestamp:serverTimestamp()
+  });
+  // Y otra a UP (informativo)
+  await addDoc(collection(db,"notificaciones"),{
+    destinatario:"UNILEVER_PERU", origen:ID, tipoNotif:"despacho-info",
+    items, codigoOrden:codigo, codigoAlbaran:codDesp,
+    estado:"pendiente", timestamp:serverTimestamp()
+  });
+  for(const it of items) await addDoc(collection(db,"movimientos"),{
+    empresa:ID, tipo:"orden-pedido", producto:it.producto, cantidad:it.cantidad,
+    direccion:"salida", notas:`${codDesp} de ${codigo} → ${destFinal}`,
+    codigoOrden:codigo, codigoAlbaran:codDesp,
+    manual:true, timestamp:serverTimestamp()
+  });
+  mDesp.close();
+  window.showToast("📦","Despacho",`${codDesp} contra ${codigo}`);
 };
 
-window.marcarRegistrado=async function(id){
-  await updateDoc(doc(db,"llegadas",id),{estado:"registrado"});
-};
-
-window.confirmarLlegada=async function(id){
-  await updateDoc(doc(db,"llegadas",id),{estado:"confirmada"});
-};
-
-window.registrarLlegadaManual=async function(){
-  const items=window.llegadaPicker.getValid();
-  const al=document.getElementById("llegadaAlert");
-  if(!items.length){showAlert(al,"Selecciona producto y cantidad.",true);return;}
-  const ns={...stock};
-  const total=PRODS.reduce((a,p)=>a+(ns[p]||0),0);
+window.crearRECEP=async function(){
+  const ref=document.getElementById("rpRef").value.trim();
+  const items=mRecep.getItems();
+  const tipo=document.getElementById("rpTipo").value;
+  if(!items.length){ mRecep.alert("Agrega al menos un producto.",true); return; }
+  // validar stock + límite
+  const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;
   if(total+added>LIMIT){
-    showAlert(al,`⚠ Supera el límite total de ${LIMIT} uds. Penalización registrada.`,true);
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${added} uds supera ${LIMIT} uds`,timestamp:serverTimestamp()});
-    return;
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${added} uds supera ${LIMIT}`,timestamp:serverTimestamp()});
+    mRecep.alert(`⚠ Supera el límite (${LIMIT}). Penalización registrada.`,true); return;
   }
-  for(const it of items){
-    ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
-    await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",producto:it.producto,cantidad:it.cantidad,direccion:"entrada",contraparte:"UNILEVER_MEX",notas:"Llegada registrada manualmente",manual:true,timestamp:serverTimestamp()});
-  }
+  const ns={...stock}; for(const it of items) ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
-  window.llegadaPicker.reset();
-  showAlert(al,`✓ ${items.length} producto(s) sumados al inventario.`,false);
+  const codRecep=await window.getNextCode(db,fns,"CL-RECEP");
+  await addDoc(collection(db,"albaranes"),{
+    codigo:codRecep, prefix:"CL-RECEP", emisor:ID, destinatario:ID,
+    origen:"UNILEVER_MEX", codigoOrden:ref||null, tipo:"entrada",
+    items, tipoEntrega:tipo, timestamp:serverTimestamp()
+  });
+  // Notificar a UP de la llegada (para que ellos cierren UP-OCOM)
+  await addDoc(collection(db,"notificaciones"),{
+    destinatario:"UNILEVER_PERU", origen:ID, tipoNotif:"recepcion-info",
+    items, codigoOrden:ref||null, codigoAlbaran:codRecep,
+    estado:"pendiente", timestamp:serverTimestamp()
+  });
+  // Si la recepción referencia una UP-OCOM, intentar cerrarla cuando esté cubierta
+  if(ref){
+    try{
+      const qo=query(collection(db,"ordenes"),where("codigo","==",ref));
+      const os=await getDocs(qo);
+      if(!os.empty){
+        const od={id:os.docs[0].id,...os.docs[0].data()};
+        if(!["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(od.estado)){
+          // sumar todas las CL-RECEP entrada con este codigoOrden
+          const qa=query(collection(db,"albaranes"),where("codigoOrden","==",ref),where("tipo","==","entrada"));
+          const as=await getDocs(qa);
+          const accum={}; as.forEach(d=>{ for(const it of (d.data().items||[])) accum[it.producto]=(accum[it.producto]||0)+it.cantidad; });
+          const covered=(od.items||[]).every(it=>(accum[it.producto]||0)>=it.cantidad);
+          if(covered){
+            const wasOverdue = od.estado==="atrasado" || (od.deadlineMs && Date.now()>od.deadlineMs);
+            await updateDoc(doc(db,"ordenes",od.id),{estado: wasOverdue?"recibido_tarde":"recibido"});
+          }
+        }
+      }
+    }catch(e){ console.error("cerrar UP-OCOM",e); }
+  }
+  for(const it of items) await addDoc(collection(db,"movimientos"),{
+    empresa:ID, tipo:"orden-compra", producto:it.producto, cantidad:it.cantidad,
+    direccion:"entrada", notas:`${codRecep}${ref?` ref ${ref}`:""}`,
+    codigoOrden:ref||null, codigoAlbaran:codRecep,
+    manual:true, timestamp:serverTimestamp()
+  });
+  mRecep.close();
+  window.showToast("📥","Recepción",`${codRecep} sumado al stock`);
 };
-
-window.switchTab=function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["despacho","llegada"][i]===t));
-  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.getElementById("tab-"+t).classList.add("active");
-};
-
-function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}
 </script>
 </body>
 </html>

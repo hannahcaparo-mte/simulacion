@@ -5,240 +5,265 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>UNILEVER PERÚ</title>
   <link rel="stylesheet" href="shared.css"/>
+  <link rel="stylesheet" href="shared-supply.css"/>
+  <style>
+    :root { --c-accent:#3B6D11; --c-bg:#EAF3DE; --c-border:#97C459;
+      --c-badge-bg:#C5E29C; --c-badge-text:#27500A; --c-name:#27500A; }
+  </style>
 </head>
 <body>
-<div class="topbar">
-<div style="display:flex;align-items:center;gap:14px;">
-    <img src="LOGO.png" style="height:40px;width:auto;" alt="CETLOG"/>
-  <div>
-    <div class="topbar-title" style="color:#3B6D11;">🌿 UNILEVER PERÚ</div>
-    <div class="topbar-sub">  Coordinador local</div>
-  </div>
-</div>
-  <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
-</div>
-<div class="with-panel">
-<div class="page">
 
-  <div class="info-box"> Cuando recibas una orden de compra: Generas una orden de pedido para CETLOG (si tiene stock suficiente) → Esperas a recibir la notificación de despacho de CETLOG → Presionas en "Atendido" en el panel derecho.</div>
-
-  <p class="section-title">Stock disponible en CETLOG (en unidades)</p>
-      <div class="stock-grid" id="stockGrid"></div>
-      <div class="total-bar" id="totalBar"></div>
-    
-  <div class="alert-banner" id="alertBanner"></div>
-  <div id="cetlogLlegadas" style="font-size:12px;color:#BA7517;margin-bottom:8px;"></div>
-  
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('op')">Orden de Pedido para Cetlog</button>
-    <button class="tab" onclick="switchTab('oc')">Orden de Compra a Unilever Mexico</button>
-  </div>
-
-  <div class="tab-content active" id="tab-op">
-    <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si hay stock en Cetlog, pídele que despache al comprador.</p>
-      <div id="opPicker"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-        <div class="field"><label>Destino final</label>
-          <select id="opDest"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG_CD">YICHANG CD</option></select>
-        </div>
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn" style="width:100%;background:#EEEDFE;color:#534AB7;border-color:#AFA9EC" onclick="enviarOP()">Enviar</button>
-        </div>
+<div class="agent-header">
+  <div class="agent-header-inner">
+    <div class="agent-id">
+      <div class="agent-accent"></div>
+      <img src="LOGO.png" alt="logo"/>
+      <div>
+        <div class="agent-name">🌿 UNILEVER PERÚ</div>
+        <span class="agent-role-badge">Coordinador · inventario en CETLOG</span>
       </div>
-      <div class="alert-banner" id="opAlert"></div>
+    </div>
+    <div class="stock-header">
+      <div class="stock-pills-h" id="stockPills"></div>
+      <div class="stock-cap" id="stockCap"></div>
     </div>
   </div>
+</div>
 
-  <div class="tab-content" id="tab-oc">
-    <div class="card">
-      <p style="font-size:12px;color:#888780;margin-bottom:12px;">Si no hay stock en CETLOG, pídele que le envíe stock a Unilever Mexico.</p>
-      <div id="ocPicker"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-        <div class="field" style="display:flex;align-items:flex-end;">
-          <button class="btn primary" style="width:100%" onclick="enviarOC()">Enviar</button>
-        </div>
-      </div>
-      <div class="alert-banner" id="ocAlert"></div>
+<div class="with-panel"><div class="page-narrow">
+  <div class="info-box-supply">El stock mostrado es de CETLOG. Cuando recibes una OC de YICHANG o TOTTUS CD: si hay stock en CETLOG → crea una OPED a CETLOG. Si no hay → crea una OC (OCOM) a UNILEVER MEX.</div>
+
+  <div class="action-bar">
+    <button class="btn-action primary" onclick="abrirOPED()">+ Orden de pedido a CETLOG</button>
+    <button class="btn-action secondary" onclick="abrirOCOM()">+ Orden de compra a UNILEVER MEX</button>
+  </div>
+
+  <div class="tabs-supply">
+    <button class="tab-supply active" onclick="window.switchTabSupply('oc',this)">OCs entrantes</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('oped',this)">Mis OPED a CETLOG</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Mis OCOM a MEX</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('mov',this)">Movimientos de CETLOG</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('pen',this)">Penalizaciones <span class="tab-supply-badge" id="penBadge">0</span></button>
+  </div>
+
+  <div class="tab-content-supply active" id="tab-oc"><div id="ocContainer"></div></div>
+  <div class="tab-content-supply" id="tab-oped"><div id="opedContainer"></div></div>
+  <div class="tab-content-supply" id="tab-ocom"><div id="ocomContainer"></div></div>
+  <div class="tab-content-supply" id="tab-mov">
+    <p style="font-size:12px;color:#888780;margin-bottom:10px;">Feed de movimientos de CETLOG en tiempo real (despachos y recepciones). Úsalo para actualizar el estado de tus órdenes.</p>
+    <div id="movContainer"></div>
+  </div>
+  <div class="tab-content-supply" id="tab-pen"><div id="penContainer"></div></div>
+</div></div>
+
+<div class="right-panel">
+  <p class="section-title-sm">OCs entrantes de YICHANG / TOTTUS CD</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Responde con OPED (CETLOG) u OCOM (MEX).</p>
+  <div id="ocsPanel"></div>
+</div>
+
+<!-- Modal OPED -->
+<div class="modal-overlay" id="mOped">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title">Orden de pedido a CETLOG</div><div class="modal-sub">UP-OPED · timer 3 min · CETLOG despacha</div></div>
+      <button class="modal-close" onclick="window.__supply_mOped.close()">×</button></div>
+    <div class="modal-body">
+      <div class="modal-field"><label class="modal-label">Cliente (destino final)</label>
+        <select id="opDest" class="modal-select"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG">YICHANG</option></select></div>
+      <div class="modal-field"><label class="modal-label">Referencia (código OC entrante)</label>
+        <input type="text" id="opRef" class="modal-input" placeholder="Ej: TCD-OCOM-002 o YI-OCOM-001"/></div>
+      <div class="modal-field"><label class="modal-label">Artículos</label>
+        <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
+        <div class="rows-modal" id="opRows"></div>
+        <button class="row-add-btn" onclick="window.__supply_mOped.addRow()">+ Agregar producto</button></div>
+      <div class="alert-m" id="opAlert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-m" onclick="window.__supply_mOped.close()">Cancelar</button>
+      <button class="btn-m primary" onclick="window.crearOPED()">Crear OPED →</button>
     </div>
   </div>
+</div>
 
-  <p class="section-title">Registro de despachos de CETLOG</p>
-  <div class="card" id="dispatchNotifsCard">
-    <div id="dispatchNotifs"><p style="font-size:12px;color:#b4b2a9;text-align:center;padding:0.5rem;">Sin despachos confirmados aún.</p></div>
+<!-- Modal OCOM -->
+<div class="modal-overlay" id="mOcom">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title">Orden de compra a UNILEVER MEX</div><div class="modal-sub">UP-OCOM · timer 3 min · MEX entrega a CETLOG</div></div>
+      <button class="modal-close" onclick="window.__supply_mOcom.close()">×</button></div>
+    <div class="modal-body">
+      <div class="modal-field"><label class="modal-label">Proveedor</label>
+        <input type="text" id="ocProv" class="modal-input" value="UNILEVER MEX" readonly/></div>
+      <div class="modal-field"><label class="modal-label">Artículos</label>
+        <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
+        <div class="rows-modal" id="ocRows"></div>
+        <button class="row-add-btn" onclick="window.__supply_mOcom.addRow()">+ Agregar producto</button></div>
+      <div class="alert-m" id="ocAlert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
+      <button class="btn-m primary" onclick="window.crearOCOM()">Crear OCOM →</button>
+    </div>
   </div>
-
-  <p class="section-title">Historial de órdenes emitidas</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Hora</th><th>Tipo</th><th>Productos</th><th>Destino</th><th>Detalles</th></tr></thead>
-      <tbody id="histEmitBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr></tbody>
-    </table>
-  </div>
-
-</div>
 </div>
 
-<div class="orders-panel">
-  <p class="section-title">Órdenes de compra recibidas</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De TOTTUS CD y YICHANG CD</p>
-  <div id="ordersContainer"><p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes aún.</p></div>
-</div>
-
-<script src="shared-ui.js"></script>
+<script src="shared-supply.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, addDoc, updateDoc, serverTimestamp, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,query,where,orderBy,runTransaction }
+  from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const ID="UNILEVER_PERU", PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
-const CETLOG_LIMIT=184;
+const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const ID="UNILEVER_PERU", ACCENT="#3B6D11", CETLOG_LIMIT=184;
+
 let cetlogStock={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
-let timers={};
+let ocsEntrantes=[];   // OCOM de YI/TCD donde destino=UP
+let misOped=[];        // UP-OPED (emisor=UP, destino=CETLOG)
+let misOcom=[];        // UP-OCOM (emisor=UP, destino=MEX)
+let movimientosCetlog=[];
 
-document.getElementById("connStatus").textContent="✓ Conectado";
+const mOped=window.createSupplyModal("mOped","opRows","opAlert");
+const mOcom=window.createSupplyModal("mOcom","ocRows","ocAlert");
+window.abrirOPED=()=>mOped.open({opRef:""});
+window.abrirOCOM=()=>mOcom.open();
 
-const opPicker = window.createPicker("opPicker","Unidades");
-const ocPicker = window.createPicker("ocPicker","Unidades");
+// Stock de CETLOG (solo lectura)
+onSnapshot(doc(db,"stocks","CETLOG"),s=>{ if(s.exists()){ cetlogStock=s.data(); window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT); }});
+window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT);
 
-onSnapshot(doc(db,"stocks","CETLOG"),s=>{if(s.exists()){cetlogStock=s.data();renderStock();}});
-
-onSnapshot(query(collection(db,"pedidos"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderIncoming(r);
+// OCs entrantes: ordenes donde destino=UP (las OCOM de YI y TCD)
+onSnapshot(query(collection(db,"ordenes"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
+  ocsEntrantes=[]; s.forEach(d=>ocsEntrantes.push({id:d.id,...d.data()}));
+  renderOCs(); renderOCsPanel();
 });
 
-onSnapshot(query(collection(db,"movimientos"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
-  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()})); renderHistEmit(r);
+// Mis órdenes emitidas (UP-OPED y UP-OCOM)
+onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
+  const all=[]; s.forEach(d=>all.push({id:d.id,...d.data()}));
+  misOped=all.filter(o=>o.prefix==="UP-OPED");
+  misOcom=all.filter(o=>o.prefix==="UP-OCOM");
+  renderOped(); renderOcom();
 });
 
-// Listen for CETLOG dispatch notifications - listen all and filter client side (no index needed)
-onSnapshot(collection(db,"despachos"),s=>{
-  console.log("[despachos] snapshot received, size:", s.size);
-  const r=[]; s.forEach(d=>{ const data=d.data(); console.log("[despachos] doc:", d.id, data); if(data.destinoNotif===ID) r.push({id:d.id,...data}); });
-  console.log("[despachos] filtered for UNILEVER_PERU:", r.length);
-  r.sort((a,b)=>{ const at=a.timestamp?.toDate?.()?.getTime()||0; const bt=b.timestamp?.toDate?.()?.getTime()||0; return bt-at; });
-  renderDispatchNotifs(r);
-}, err => console.error("[despachos] listener error:", err));
+// Movimientos de CETLOG (feed)
+onSnapshot(query(collection(db,"movimientos"),where("empresa","==","CETLOG"),orderBy("timestamp","desc")),s=>{
+  movimientosCetlog=[]; s.forEach(d=>movimientosCetlog.push({id:d.id,...d.data()}));
+  renderMov();
+});
 
-function renderStock(){
-  const total=PRODS.reduce((a,p)=>a+(cetlogStock[p]||0),0);
-  const pct=Math.min(100,Math.round(total/CETLOG_LIMIT*100));
-  const color=total===0?"#E24B4A":pct>=80?"#EF9F27":"#1D9E75";
-  document.getElementById("stockGrid").innerHTML=PRODS.map(p=>{
-    const v=cetlogStock[p]||0; const st=v===0?"danger":"ok";
-    const pp=Math.min(100,Math.round(v/CETLOG_LIMIT*100));
-    const bc=st==="ok"?"#1D9E75":"#E24B4A";
-    return `<div class="stock-card ${st!=="ok"?st:""}"><div class="product-name">${p}</div><div class="stock-num ${st}">${v}</div><div class="bar-wrap"><div class="bar" style="width:${pp}%;background:${bc}"></div></div></div>`;
-  }).join("");
-  document.getElementById("totalBar").innerHTML=`<span class="total-bar-label">Total CETLOG</span><div class="total-bar-track"><div class="total-bar-fill" style="width:${pct}%;background:${color}"></div></div><span class="total-bar-num" style="color:${color}">${total} / ${CETLOG_LIMIT} uds</span>`;
-  const b=document.getElementById("alertBanner");
-  const zeros=PRODS.filter(p=>(cetlogStock[p]||0)===0);
-  if(zeros.length){b.className="alert-banner error show";b.textContent="Sin stock en CETLOG: "+zeros.join(", ");}
-  else b.className="alert-banner";
+onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
+  window.renderPenList("penContainer","penBadge",r,"UNILEVER PERÚ");
+});
+
+// UP solo coordina: no corre watcher de expiración (no despacha físicamente).
+// La lentitud del abastecimiento se penaliza aguas abajo (UP-OPED a CETLOG,
+// UP-OCOM cumplida por UM-OVEN). Las OC entrantes muestran "atrasado" vía
+// computeOrderState (deadline), sin penalización aquí.
+
+function renderOCs(){
+  const c=document.getElementById("ocContainer");
+  if(!ocsEntrantes.length){ c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin OCs entrantes.</p>'; return; }
+  c.innerHTML=ocsEntrantes.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,
+    albaranes:[]})).join("");
 }
 
-function renderIncoming(orders){
-  const c=document.getElementById("ordersContainer");
-  if(!orders.length){c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding-top:2rem;">Sin órdenes.</p>';return;}
-  c.innerHTML=orders.map(o=>{
-    const t=o.timestamp?new Date(o.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const orig={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[o.origen]||o.origen;
-    const itemsTxt = o.items ? o.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${o.producto} ×${o.cantidad} uds`;
-    if(o.estado==="completado") return `<div class="order-item completado" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt} de ${orig}</div><div class="order-detail">${t} · <span class="badge completado">Atendido</span></div></div>`;
-    if(o.estado==="vencido") return `<div class="order-item vencido" style="margin-bottom:8px;"><div class="order-title" style="font-size:13px;">${itemsTxt}</div><div class="order-detail"><span class="badge vencido">Tiempo vencido</span></div></div>`;
-    if(!timers[o.id]) startTimer(o.id,o.timestamp);
-    return `<div class="order-item pendiente" id="ord-${o.id}" style="margin-bottom:8px;">
-      <div class="order-title" style="font-size:13px;color:#A32D2D;">● ${itemsTxt} de ${orig}</div>
-      <div class="order-detail">${t} · <span class="badge orden-compra">Orden de compra</span></div>
-      <div class="timer" id="tmr-${o.id}">3:00</div>
-      <p style="font-size:11px;color:#5f5e5a;margin:4px 0;">Responde con OP a CETLOG u OC a MEX, luego pulsa Atendido</p>
-      <button class="btn success" style="width:100%;margin-top:4px" onclick="marcarAtendido('${o.id}')">✓ Atendido</button>
+function renderOCsPanel(){
+  const c=document.getElementById("ocsPanel");
+  const a=ocsEntrantes.filter(o=>["pendiente","parcial","atrasado"].includes(o.estado));
+  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin OCs pendientes.</p>'; return; }
+  c.innerHTML=a.map(o=>{
+    const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
+    const itemsJson=encodeURIComponent(JSON.stringify(o.items));
+    const destFinal=o.emisor; // quien pidió es el destino final
+    return `<div class="notif-card" style="background:#fff;border-color:#97C459;border-left-color:#3B6D11">
+      <div class="notif-title" style="color:#27500A">📥 ${o.codigo}</div>
+      <div class="notif-detail">${items}<br>De: ${window.AGENT_LABEL[o.emisor]}</div>
+      <button class="notif-btn" style="background:#EAF3DE;color:#27500A;border-color:#97C459;margin-bottom:4px" onclick="window.responderOPED('${o.codigo}','${destFinal}','${itemsJson}')">→ OPED a CETLOG</button>
+      <button class="notif-btn" onclick="window.responderOCOM('${itemsJson}')">→ OCOM a MEX</button>
     </div>`;
   }).join("");
 }
 
-function renderHistEmit(rows){
-  const b=document.getElementById("histEmitBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes emitidas.</td></tr>';return;}
-  const labels={UNILEVER_MEX:"UNILEVER MEX",CETLOG:"CETLOG",TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"};
-  const tipos={"orden-compra":"Orden de compra","orden-pedido":"Orden de pedido"};
-  b.innerHTML=rows.map((r,i)=>{
-    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${r.producto||"—"} ×${r.cantidad||"—"}`;
-    return `<tr>
-      <td style="color:#b4b2a9">${rows.length-i}</td>
-      <td style="color:#888780;white-space:nowrap">${r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—"}</td>
-      <td><span class="badge ${r.tipo}">${tipos[r.tipo]||r.tipo}</span></td>
-      <td>${itemsTxt}</td>
-      <td>${labels[r.destino]||r.destino||"—"}</td>
-      <td style="font-size:12px;color:#888780">${r.notas||""}</td>
-    </tr>`;
-  }).join("");
+function renderOped(){
+  const c=document.getElementById("opedContainer");
+  c.innerHTML=misOped.length?misOped.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"enviado",albaranes:[]})).join("")
+    :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin OPED emitidas.</p>';
 }
 
-function renderDispatchNotifs(rows){
-  const c=document.getElementById("dispatchNotifs");
-  if(!rows.length){c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:0.5rem;">Sin despachos confirmados aún.</p>';return;}
-  c.innerHTML=rows.slice(0,5).map(r=>{
-    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const dest={TOTTUS_CD:"TOTTUS CD",YICHANG_CD:"YICHANG CD"}[r.destinoFinal]||r.destinoFinal;
-    const itemsTxt = r.items ? r.items.map(it=>`${it.producto} ×${it.cantidad} uds`).join(", ") : `${r.producto} ×${r.cantidad} uds`;
-    return `<div style="padding:8px 10px;border-left:3px solid #1D9E75;background:#E1F5EE;margin-bottom:6px;border-radius:4px;font-size:13px;">
-      <strong>📦 CETLOG despachó:</strong> ${itemsTxt} → ${dest}
-      <div style="font-size:11px;color:#0F6E56;margin-top:2px;">${t} · Ya puedes pausar tu timer.</div>
-    </div>`;
-  }).join("");
+function renderOcom(){
+  const c=document.getElementById("ocomContainer");
+  c.innerHTML=misOcom.length?misOcom.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",albaranes:[]})).join("")
+    :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin OCOM emitidas.</p>';
 }
 
-function startTimer(oid,acceptedAt){
-  if(timers[oid]) return;
-  const dl=acceptedAt?(acceptedAt.toDate?acceptedAt.toDate().getTime():acceptedAt)+180000:Date.now()+180000;
-  timers[oid]=setInterval(async()=>{
-    const rem=dl-Date.now(); const el=document.getElementById("tmr-"+oid);
-    if(!el){clearInterval(timers[oid]);return;}
-    if(rem<=0){clearInterval(timers[oid]);el.textContent="¡TIEMPO!";el.className="timer expired";await updateDoc(doc(db,"pedidos",oid),{estado:"vencido"});await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Tiempo vencido",detalle:"Orden de compra no atendida en 3 min",timestamp:serverTimestamp()});return;}
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    el.textContent=`${m}:${s.toString().padStart(2,"0")}`;el.className="timer"+(rem<60000?" warning":"");
-  },500);
+function renderMov(){
+  const c=document.getElementById("movContainer");
+  if(!movimientosCetlog.length){ c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin movimientos de CETLOG aún.</p>'; return; }
+  c.innerHTML='<div class="tbl-wrap-s"><table class="tbl-supply"><thead><tr><th>Hora</th><th>Dirección</th><th>Producto</th><th>Cantidad</th><th>Orden / Albarán</th></tr></thead><tbody>'+
+    movimientosCetlog.slice(0,60).map(m=>{
+      const t=m.timestamp?new Date(m.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
+      const dir=m.direccion==="salida"?'<span class="estado-badge enviado">Despacho ↑</span>':'<span class="estado-badge recibido">Recepción ↓</span>';
+      return `<tr><td style="color:#888780">${t}</td><td>${dir}</td><td>${m.producto}</td><td style="font-weight:600;color:${m.direccion==="salida"?"#A32D2D":"#0F6E56"}">${m.direccion==="salida"?"-":"+"}${m.cantidad}</td><td style="font-size:11px;color:#888780">${m.notas||""}</td></tr>`;
+    }).join("")+'</tbody></table></div>';
 }
 
-window.marcarAtendido=async function(id){clearInterval(timers[id]);await updateDoc(doc(db,"pedidos",id),{estado:"completado"});};
+window.responderOPED=function(codigoOC, destFinal, itemsJson){
+  const items=JSON.parse(decodeURIComponent(itemsJson));
+  mOped.open({opRef:codigoOC});
+  document.getElementById("opDest").value = destFinal==="YICHANG"?"YICHANG":"TOTTUS_CD";
+  mOped.setRows(items);
+};
+window.responderOCOM=function(itemsJson){
+  const items=JSON.parse(decodeURIComponent(itemsJson));
+  mOcom.open();
+  mOcom.setRows(items);
+};
 
-window.enviarOP=async function(){
-  const items = opPicker.getValid();
+window.crearOPED=async function(){
+  const items=mOped.getItems();
   const dest=document.getElementById("opDest").value;
-  const al=document.getElementById("opAlert");
-  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
-  // Validate stock
+  const ref=document.getElementById("opRef").value.trim();
+  if(!items.length){ mOped.alert("Agrega al menos un producto.",true); return; }
+  // validar stock CETLOG
   for(const it of items){
-    if((cetlogStock[it.producto]||0)<it.cantidad){showAlert(al,`Stock insuficiente en CETLOG para ${it.producto}.`,true);return;}
+    if((cetlogStock[it.producto]||0)<it.cantidad){ mOped.alert(`CETLOG no tiene suficiente ${window.shortProd(it.producto)} (${cetlogStock[it.producto]||0}). Usa OCOM a MEX primero.`,true); return; }
   }
-  await addDoc(collection(db,"pedidos"),{destino:"CETLOG",tipo:"orden-pedido",items,origen:ID,destinoFinal:dest,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",items,destino:"CETLOG",notas:`Para ${dest==="TOTTUS_CD"?"TOTTUS CD":"YICHANG CD"}`,timestamp:serverTimestamp()});
-  opPicker.reset();
-  showAlert(al,`Orden de pedido enviada a CETLOG (${items.length} producto(s)).`,false);
+  const codigo=await window.getNextCode(db,fns,"UP-OPED");
+  await addDoc(collection(db,"ordenes"),{
+    codigo, prefix:"UP-OPED",
+    emisor:ID, destino:"CETLOG", destinoFinal:dest,
+    cliente:window.AGENT_LABEL[dest], tipo:"pedido",
+    items, estado:"pendiente", responsable:"CETLOG", // CETLOG debe despachar
+    referencia:ref||null,
+    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+  });
+  // Notificar a CETLOG
+  await addDoc(collection(db,"notificaciones"),{
+    destinatario:"CETLOG", origen:ID, tipoNotif:"pedido",
+    items, codigoOrden:codigo, estado:"pendiente", timestamp:serverTimestamp()
+  });
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-pedido",items,destino:"CETLOG",notas:`${codigo} para ${window.AGENT_LABEL[dest]}`,timestamp:serverTimestamp()});
+  mOped.close();
+  window.showToast("📋","OPED creada",`${codigo} → CETLOG`);
 };
 
-window.enviarOC=async function(){
-  const items = ocPicker.getValid();
-  const notas="";
-  const al=document.getElementById("ocAlert");
-  if(!items.length){showAlert(al,"Agrega al menos un producto.",true);return;}
-  await addDoc(collection(db,"pedidos"),{destino:"UNILEVER_MEX",tipo:"orden-compra",items,origen:ID,notas,estado:"pendiente",timestamp:serverTimestamp()});
-  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_MEX",notas:`OC a UNILEVER MEX${notas?" — "+notas:""}`,timestamp:serverTimestamp()});
-  ocPicker.reset();
-
-  showAlert(al,`Orden de compra enviada a Unilever Mexico (${items.length} producto(s)).`,false);
+window.crearOCOM=async function(){
+  const items=mOcom.getItems();
+  if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
+  const codigo=await window.getNextCode(db,fns,"UP-OCOM");
+  await addDoc(collection(db,"ordenes"),{
+    codigo, prefix:"UP-OCOM",
+    emisor:ID, destino:"UNILEVER_MEX", destinoFinal:"CETLOG",
+    proveedor:"UNILEVER MEX", tipo:"compra",
+    items, estado:"pendiente", responsable:"UNILEVER_MEX", // MEX debe entregar
+    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+  });
+  await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_MEX",notas:`${codigo} a UNILEVER MEX`,timestamp:serverTimestamp()});
+  mOcom.close();
+  window.showToast("📋","OCOM creada",`${codigo} → UNILEVER MEX`);
 };
-
-window.switchTab=function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["op","oc"][i]===t));
-  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.getElementById("tab-"+t).classList.add("active");
-};
-
-function showAlert(el,msg,err){el.textContent=msg;el.className="alert-banner show"+(err?" error":"");setTimeout(()=>el.className="alert-banner",5000);}
-
-renderStock();
 </script>
 </body>
 </html>

@@ -5,222 +5,159 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Coordinador</title>
   <link rel="stylesheet" href="shared.css"/>
+  <link rel="stylesheet" href="shared-supply.css"/>
   <style>
-    .pen-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
-    .pen-card { background: #fff; border: 1px solid #e5e4de; border-radius: 10px; padding: 12px; text-align: center; }
-    .pen-name { font-size: 11px; color: #888780; margin-bottom: 4px; }
-    .pen-count { font-size: 20px; font-weight: 500; color: #A32D2D; }
-    .companies-charts { display: grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap: 12px; margin-bottom: 1.5rem; }
-    .company-row { display:grid; grid-template-columns: 160px 1fr 160px; gap:16px; align-items:center; background:#fff; border:1px solid #e5e4de; border-radius:12px; padding:14px 16px; }
-    .company-row-name { font-size:14px; font-weight:500; }
+    .pen-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:1.5rem; }
+    .pen-card { background:#fff; border:1px solid #e5e4de; border-radius:10px; padding:12px; text-align:center; }
+    .pen-name { font-size:11px; color:#888780; margin-bottom:4px; }
+    .pen-count { font-size:22px; font-weight:600; color:#A32D2D; }
+    .companies-charts { display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:1.5rem; }
+    .company-row { display:grid; grid-template-columns:170px 1fr 130px; gap:16px; align-items:center; background:#fff; border:1px solid #e5e4de; border-radius:12px; padding:14px 16px; }
+    .company-row-name { font-size:14px; font-weight:600; }
     .company-row-stocks { display:flex; gap:8px; flex-wrap:wrap; }
-    .stock-pill { display:flex; flex-direction:column; align-items:center; background:#f5f5f3; border-radius:8px; padding:6px 10px; min-width:52px; }
-    .stock-pill-label { font-size:10px; color:#888780; margin-bottom:2px; }
-    .stock-pill-val { font-size:15px; font-weight:500; }
-    .stock-pill-val.ok { color:#0F6E56; } .stock-pill-val.low { color:#BA7517; } .stock-pill-val.empty { color:#A32D2D; }
-    .mini-donut { width:120px; height:120px; flex-shrink:0; }
-    @media (max-width: 700px) { .companies-charts { grid-template-columns: 1fr; } .pen-grid { grid-template-columns: repeat(3, 1fr); } }
+    .stk-pill { display:flex; flex-direction:column; align-items:center; background:#f5f5f3; border-radius:8px; padding:6px 10px; min-width:52px; }
+    .stk-pill-label { font-size:10px; color:#888780; margin-bottom:2px; }
+    .stk-pill-val { font-size:15px; font-weight:600; }
+    .mini-donut { width:104px; height:104px; }
+    @media (max-width:760px){ .pen-grid{grid-template-columns:repeat(3,1fr);} .company-row{grid-template-columns:1fr;} }
   </style>
 </head>
 <body>
 <div class="topbar">
-  <div>
-    <div class="topbar-title">🎯 Coordinador — Interfaz Principal</div>
-    <div class="topbar-sub">Simulación cadena de suministros</div>
-  </div>
+  <div><div class="topbar-title">Coordinador - Cadena de Suministros</div><div class="topbar-sub">Vista global de la simulacion</div></div>
   <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
 </div>
 
 <div class="page">
-
   <p class="section-title">Penalizaciones por empresa</p>
   <div class="pen-grid" id="penGrid"></div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('stocks')">Stocks (gráficos)</button>
-    <button class="tab" onclick="switchTab('historial')">Historial global</button>
-    <button class="tab" onclick="switchTab('penhistorial')">Historial penalizaciones</button>
+    <button class="tab active" onclick="switchTab('stocks')">Stocks</button>
+    <button class="tab" onclick="switchTab('ordenes')">Ordenes (global)</button>
+    <button class="tab" onclick="switchTab('albaranes')">Albaranes (global)</button>
+    <button class="tab" onclick="switchTab('penhist')">Historial penalizaciones</button>
   </div>
 
-  <div class="tab-content active" id="tab-stocks">
-    <div class="companies-charts" id="chartsGrid"></div>
-  </div>
+  <div class="tab-content active" id="tab-stocks"><div class="companies-charts" id="chartsGrid"></div></div>
 
-  <div class="tab-content" id="tab-historial">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Hora</th><th>Empresa</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Dirección</th><th>Notas</th></tr></thead>
-        <tbody id="historialBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="tab-content" id="tab-ordenes"><div class="table-wrap"><table>
+    <thead><tr><th>Codigo</th><th>Hora</th><th>Emisor</th><th>Destino</th><th>Items</th><th>Estado</th></tr></thead>
+    <tbody id="ordenesBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin ordenes.</td></tr></tbody>
+  </table></div></div>
 
-  <div class="tab-content" id="tab-penhistorial">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Hora</th><th>Empresa</th><th>Motivo</th><th>Detalle</th></tr></thead>
-        <tbody id="penHistorialBody"><tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones aún.</td></tr></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="tab-content" id="tab-albaranes"><div class="table-wrap"><table>
+    <thead><tr><th>Codigo</th><th>Hora</th><th>Tipo</th><th>Orden ref.</th><th>Items</th><th>Entrega</th></tr></thead>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+  </table></div></div>
 
+  <div class="tab-content" id="tab-penhist"><div class="table-wrap"><table>
+    <thead><tr><th>Hora</th><th>Empresa</th><th>Motivo</th><th>Detalle</th></tr></thead>
+    <tbody id="penHistBody"><tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones.</td></tr></tbody>
+  </table></div></div>
 </div>
 
-<script src="shared-ui.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
-const app=initializeApp(CFG); const db=getFirestore(app);
+const app=initializeApp({apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"});
+const db=getFirestore(app);
 
-const COMPANIES = {
-  UNILEVER_MEX:   { label: "UNILEVER MEX",   limit: null,  initial: {Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96} },
-  CETLOG:         { label: "CETLOG",          limit: 184,   initial: {Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48} },
-  TOTTUS_CD:      { label: "TOTTUS CD",       limit: 184,   initial: {Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24} },
-  YICHANG_CD:     { label: "YICHANG CD",      limit: 120,   initial: {Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40} },
-  TOTTUS_TIENDA:  { label: "TOTTUS TIENDA",   limit: 70,    initial: {Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12} },
-  UNILEVER_PERU:  { label: "UNILEVER PERÚ",  limit: null,  initial: {} },
+const COMPANIES={
+  UNILEVER_MEX:{label:"UNILEVER MEX",limit:null,initial:{Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96}},
+  CETLOG:{label:"CETLOG",limit:184,initial:{Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48}},
+  TOTTUS_CD:{label:"TOTTUS CD",limit:184,initial:{Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24}},
+  YICHANG:{label:"YICHANG",limit:120,initial:{Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40}},
+  TOTTUS_TIENDA:{label:"TOTTUS TIENDA",limit:70,initial:{Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12}},
+  UNILEVER_PERU:{label:"UNILEVER PERU",limit:null,initial:{}}
 };
+const PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
+const PCOL={Rojo:"#E24B4A",Azul:"#378ADD",Rosado:"#E89AB9",Blanco:"#b9b7ad",Amarillo:"#EFC027",LIBRE:"#f1efe8"};
+const ESTADO_LBL={pendiente:"Pendiente",parcial:"Parcial",atrasado:"Atrasado",recibido:"Recibido",enviado:"Enviado",recibido_tarde:"Recibido tarde",enviado_tarde:"Enviado tarde",cancelado:"Cancelado"};
+let stockData={}, penalties={};
 
-const PRODS = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
-let stockData = {};
-let penalties = {};
+document.getElementById("connStatus").textContent="Conectado";
 
-document.getElementById("connStatus").textContent="✓ Conectado";
-
-onSnapshot(collection(db,"stocks"), snap => {
-  snap.forEach(d => { stockData[d.id]=d.data(); });
-  if(document.getElementById("coStocks-CETLOG")) updateCharts();
-  else renderCharts();
-});
-
-onSnapshot(query(collection(db,"movimientos"),orderBy("timestamp","desc")), snap => {
-  const rows=[]; snap.forEach(d=>rows.push({id:d.id,...d.data()}));
-  renderHistorial(rows);
-});
-
-onSnapshot(query(collection(db,"penalizaciones"),orderBy("timestamp","desc")), snap => {
+onSnapshot(collection(db,"stocks"),snap=>{ snap.forEach(d=>stockData[d.id]=d.data()); updateCharts(); });
+onSnapshot(query(collection(db,"penalizaciones"),orderBy("timestamp","desc")),snap=>{
   penalties={}; const rows=[];
-  snap.forEach(d=>{const data=d.data(); rows.push(data); penalties[data.empresa]=(penalties[data.empresa]||0)+1;});
-  renderPenGrid();
-  renderPenHistorial(rows);
+  snap.forEach(d=>{const x=d.data(); rows.push(x); penalties[x.empresa]=(penalties[x.empresa]||0)+1;});
+  renderPenGrid(); renderPenHist(rows);
+});
+onSnapshot(query(collection(db,"ordenes"),orderBy("timestamp","desc")),snap=>{
+  const rows=[]; snap.forEach(d=>rows.push(d.data())); renderOrdenes(rows);
+});
+onSnapshot(query(collection(db,"albaranes"),orderBy("timestamp","desc")),snap=>{
+  const rows=[]; snap.forEach(d=>rows.push(d.data())); renderAlb(rows);
 });
 
 function renderCharts(){
-  const grid = document.getElementById("chartsGrid");
-  grid.innerHTML = Object.entries(COMPANIES).map(([key,co])=>{
-    return `<div class="company-row">
-      <div>
-        <div class="company-row-name">${co.label}</div>
-        <div id="coTotal-${key}" style="font-size:11px;color:#888780;margin-top:2px;"></div>
-      </div>
-      <div class="company-row-stocks" id="coStocks-${key}"></div>
-      <div><svg id="coDonut-${key}" viewBox="0 0 120 120" class="mini-donut"></svg></div>
-    </div>`;
-  }).join("");
+  document.getElementById("chartsGrid").innerHTML=Object.entries(COMPANIES).map(([k,co])=>`
+    <div class="company-row">
+      <div><div class="company-row-name">${co.label}</div><div id="coTotal-${k}" style="font-size:11px;color:#888780;margin-top:2px;"></div></div>
+      <div class="company-row-stocks" id="coStocks-${k}"></div>
+      <div><svg id="coDonut-${k}" viewBox="0 0 120 120" class="mini-donut"></svg></div>
+    </div>`).join("");
   updateCharts();
 }
-
 function updateCharts(){
-  for(const [key,co] of Object.entries(COMPANIES)){
-    const stock = stockData[key] || co.initial;
-    const total = PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-
-    // Stock pills
-    const pillsEl = document.getElementById("coStocks-"+key);
-    if(pillsEl){
-      pillsEl.innerHTML = PRODS.map(p=>{
-        const v=stock[p]||0;
-        const cls = v===0?"empty":co.limit&&total/co.limit>0.8?"low":"ok";
-        return `<div class="stock-pill"><span class="stock-pill-label">${p}</span><span class="stock-pill-val ${cls}">${v}</span></div>`;
-      }).join("");
-    }
-
-    // Total label
-    const totalEl = document.getElementById("coTotal-"+key);
-    if(totalEl){
-      if(co.limit){
-        const pct=Math.round(total/co.limit*100);
-        const col=total>=co.limit?"#A32D2D":total/co.limit>0.8?"#BA7517":"#0F6E56";
-        totalEl.innerHTML=`<span style="color:${col};font-weight:500">${total}</span> / ${co.limit} uds`;
-      } else {
-        totalEl.textContent=`${total} unidades`;
-      }
-    }
-
-    // Mini donut SVG
-    const svgEl = document.getElementById("coDonut-"+key);
-    if(svgEl) renderMiniDonut(svgEl, stock, co.limit);
+  for(const [k,co] of Object.entries(COMPANIES)){
+    const stock=stockData[k]||co.initial;
+    const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
+    const pe=document.getElementById("coStocks-"+k);
+    if(pe) pe.innerHTML=PRODS.map(p=>`<div class="stk-pill"><span class="stk-pill-label">${p}</span><span class="stk-pill-val" style="color:${PCOL[p]}">${stock[p]||0}</span></div>`).join("");
+    const te=document.getElementById("coTotal-"+k);
+    if(te){ if(co.limit){const pct=Math.round(total/co.limit*100);const col=total>=co.limit?"#A32D2D":pct>80?"#BA7517":"#0F6E56";te.innerHTML=`<span style="color:${col};font-weight:600">${total}</span> / ${co.limit} uds`;} else te.textContent=`${total} unidades`; }
+    const se=document.getElementById("coDonut-"+k); if(se) donut(se,stock,co.limit);
   }
 }
-
-function renderMiniDonut(svgEl, stock, limit){
-  const PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
-  const colors={Rojo:"#E24B4A",Azul:"#378ADD",Rosado:"#E89AB9",Blanco:"#d3d1c7",Amarillo:"#EFC027",LIBRE:"#f1efe8"};
-  const cx=60,cy=60,r=44,sw=20;
-  const segments=[];
-  PRODS.forEach(p=>{ const v=stock[p]||0; if(v>0) segments.push({name:p,value:v,color:colors[p]}); });
-  const used=segments.reduce((a,s)=>a+s.value,0);
-  if(limit){ const free=Math.max(0,limit-used); if(free>0) segments.push({name:"LIBRE",value:free,color:colors.LIBRE}); }
-  const total=segments.reduce((a,s)=>a+s.value,0);
-  if(!total){svgEl.innerHTML=`<circle cx="60" cy="60" r="44" fill="none" stroke="#f1efe8" stroke-width="20"/>`;return;}
+function donut(svg,stock,limit){
+  const cx=60,cy=60,r=44,sw=18; const segs=[];
+  PRODS.forEach(p=>{const v=stock[p]||0; if(v>0) segs.push({v,c:PCOL[p]});});
+  const used=segs.reduce((a,s)=>a+s.v,0);
+  if(limit){const free=Math.max(0,limit-used); if(free>0) segs.push({v:free,c:PCOL.LIBRE});}
+  const total=segs.reduce((a,s)=>a+s.v,0);
+  if(!total){svg.innerHTML=`<circle cx="60" cy="60" r="44" fill="none" stroke="#f1efe8" stroke-width="18"/>`;return;}
   let cum=0;
-  const paths=segments.map(seg=>{
-    const sa=(cum/total)*2*Math.PI-Math.PI/2;
-    const ea=((cum+seg.value)/total)*2*Math.PI-Math.PI/2;
-    cum+=seg.value;
-    const la=(seg.value/total)>0.5?1:0;
-    const x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa);
-    const x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
-    return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${la} 1 ${x2} ${y2}" fill="none" stroke="${seg.color}" stroke-width="${sw}"/>`;
-  }).join("");
-  svgEl.innerHTML=paths+`<text x="60" y="64" text-anchor="middle" font-size="13" font-weight="500" fill="#1a1a18">${used}</text>`;
+  svg.innerHTML=segs.map(s=>{const sa=cum/total*2*Math.PI-Math.PI/2,ea=(cum+s.v)/total*2*Math.PI-Math.PI/2;cum+=s.v;const la=s.v/total>0.5?1:0;return `<path d="M ${cx+r*Math.cos(sa)} ${cy+r*Math.sin(sa)} A ${r} ${r} 0 ${la} 1 ${cx+r*Math.cos(ea)} ${cy+r*Math.sin(ea)}" fill="none" stroke="${s.c}" stroke-width="${sw}"/>`;}).join("")+`<text x="60" y="64" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">${used}</text>`;
 }
-
 function renderPenGrid(){
-  document.getElementById("penGrid").innerHTML = Object.entries(COMPANIES).map(([key,co])=>{
-    const c=penalties[key]||0;
-    return `<div class="pen-card"><div class="pen-name">${co.label}</div><div class="pen-count">${c}</div><div style="font-size:11px;color:#b4b2a9;">penalizaciones</div></div>`;
+  document.getElementById("penGrid").innerHTML=Object.entries(COMPANIES).map(([k,co])=>`<div class="pen-card"><div class="pen-name">${co.label}</div><div class="pen-count">${penalties[k]||0}</div><div style="font-size:11px;color:#b4b2a9;">penalizaciones</div></div>`).join("");
+}
+function renderOrdenes(rows){
+  const b=document.getElementById("ordenesBody");
+  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin ordenes.</td></tr>';return;}
+  const lbl=k=>COMPANIES[k]?COMPANIES[k].label:(k||"-");
+  b.innerHTML=rows.slice(0,150).map(r=>{
+    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"-";
+    const items=(r.items||[]).map(it=>`${it.producto} x${it.cantidad}`).join(", ");
+    return `<tr><td style="font-family:Menlo,monospace;font-weight:600">${r.codigo}</td><td style="color:#888780">${t}</td><td>${lbl(r.emisor)}</td><td>${lbl(r.destino)}</td><td>${items}</td><td><span class="estado-badge ${r.estado}">${ESTADO_LBL[r.estado]||r.estado}</span></td></tr>`;
   }).join("");
 }
-
-function renderHistorial(rows){
-  const b=document.getElementById("historialBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr>';return;}
-  b.innerHTML=rows.slice(0,100).map(r=>{
-    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const co=COMPANIES[r.empresa];
-    const itemsTxt = r.items ? r.items.map(it=>`${it.producto}×${it.cantidad}`).join(", ") : (r.producto||"—");
-    return `<tr>
-      <td style="color:#888780">${t}</td>
-      <td>${co?co.label:r.empresa}</td>
-      <td><span class="badge ${r.tipo}">${r.tipo}</span></td>
-      <td>${itemsTxt}</td>
-      <td>${r.cantidad?(r.direccion==="salida"?"-":"+")+r.cantidad:"—"}</td>
-      <td>${r.direccion==="salida"?"Salida":r.direccion==="entrada"?"Entrada":"—"}</td>
-      <td style="color:#888780;font-size:12px">${r.notas||""}</td>
-    </tr>`;
+function renderAlb(rows){
+  const b=document.getElementById("albBody");
+  if(!rows.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin albaranes.</td></tr>';return;}
+  b.innerHTML=rows.slice(0,150).map(r=>{
+    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"-";
+    const items=(r.items||[]).map(it=>`${it.producto} x${it.cantidad}`).join(", ");
+    return `<tr><td style="font-family:Menlo,monospace;font-weight:600">${r.codigo}</td><td style="color:#888780">${t}</td><td><span class="estado-badge ${r.tipo==="salida"?"enviado":"recibido"}">${r.tipo}</span></td><td style="font-family:Menlo,monospace">${r.codigoOrden||"-"}</td><td>${items}</td><td>${r.tipoEntrega||"-"}</td></tr>`;
   }).join("");
 }
-
-function renderPenHistorial(rows){
-  const b=document.getElementById("penHistorialBody");
-  if(!rows.length){b.innerHTML='<tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones aún.</td></tr>';return;}
+function renderPenHist(rows){
+  const b=document.getElementById("penHistBody");
+  if(!rows.length){b.innerHTML='<tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones.</td></tr>';return;}
   b.innerHTML=rows.map(r=>{
-    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
-    const co=COMPANIES[r.empresa];
-    return `<tr class="penalty-row"><td style="color:#888780">${t}</td><td>${co?co.label:r.empresa}</td><td><span class="badge penalizacion">${r.motivo}</span></td><td style="font-size:12px;color:#5f5e5a">${r.detalle||""}</td></tr>`;
+    const t=r.timestamp?new Date(r.timestamp.toDate()).toLocaleTimeString("es-PE"):"-";
+    return `<tr><td style="color:#888780">${t}</td><td>${COMPANIES[r.empresa]?COMPANIES[r.empresa].label:r.empresa}</td><td><span class="estado-badge atrasado">${r.motivo}</span></td><td style="font-size:12px;color:#5f5e5a">${r.detalle||""}</td></tr>`;
   }).join("");
 }
-
 window.switchTab=function(t){
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["stocks","historial","penhistorial"][i]===t));
+  const order=["stocks","ordenes","albaranes","penhist"];
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",order[i]===t));
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.getElementById("tab-"+t).classList.add("active");
 };
-
-renderPenGrid();
-renderCharts();
+renderPenGrid(); renderCharts();
 </script>
 </body>
 </html>

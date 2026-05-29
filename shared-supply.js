@@ -1,0 +1,365 @@
+// shared-supply.js — Lógica compartida de cadena de suministros
+
+window.PRODS  = ["Rojo","Azul","Rosado","Blanco","Amarillo"];
+window.COLORS = {"Rojo":"#E24B4A","Azul":"#378ADD","Rosado":"#E89AB9","Blanco":"#888780","Amarillo":"#EFC027"};
+window.AGENT_LABEL = {
+  YICHANG:"YICHANG", DON_TITO:"DON TITO",
+  TOTTUS_TIENDA:"TOTTUS TIENDA", TOTTUS_CD:"TOTTUS CD",
+  UNILEVER_PERU:"UNILEVER PERÚ", UNILEVER_MEX:"UNILEVER MEX",
+  CETLOG:"CETLOG", COMPRADOR:"COMPRADOR"
+};
+window.shortProd = function(p){ return p||"—"; };
+window.TIMER_MS = 180000;
+
+/* Códigos auto-increment transaccional */
+window.getNextCode = async function(db, fns, prefix) {
+  const { doc, runTransaction } = fns;
+  const ref = doc(db, "contadores", prefix);
+  const num = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const current = snap.exists() ? (snap.data().numero || 0) : 0;
+    const next = current + 1;
+    tx.set(ref, { numero: next });
+    return next;
+  });
+  return `${prefix}-${String(num).padStart(3, "0")}`;
+};
+
+/* Items remaining vs entregados */
+window.itemsRemaining = function(orden, albaranesDeOrden) {
+  const accum = {};
+  for (const a of albaranesDeOrden) for (const it of (a.items||[])) accum[it.producto] = (accum[it.producto]||0) + it.cantidad;
+  return (orden.items||[]).map(it => ({
+    producto: it.producto,
+    pedido: it.cantidad,
+    entregado: accum[it.producto] || 0,
+    pendiente: Math.max(0, it.cantidad - (accum[it.producto]||0))
+  }));
+};
+window.itemsAnyDelivered = function(rem) { return rem.some(r => r.entregado > 0); };
+window.itemsAllDelivered = function(rem) { return rem.every(r => r.pendiente === 0); };
+
+/* Estado computado */
+window.computeOrderState = function(orden, albaranes, completedKey="recibido") {
+  if (orden.estado === "cancelado") return "cancelado";
+  if (["recibido","enviado","recibido_tarde","enviado_tarde"].includes(orden.estado)) return orden.estado;
+  const rem = window.itemsRemaining(orden, albaranes);
+  const complete = window.itemsAllDelivered(rem);
+  const wasOverdue = orden.estado === "atrasado" || (orden.deadlineMs && Date.now() > orden.deadlineMs);
+  if (complete) return wasOverdue ? (completedKey === "enviado" ? "enviado_tarde" : "recibido_tarde") : completedKey;
+  if (window.itemsAnyDelivered(rem)) return wasOverdue ? "atrasado" : "parcial";
+  return wasOverdue ? "atrasado" : "pendiente";
+};
+
+/* Header */
+window.renderHeader = function(stock, limit, accentColor) {
+  const total = window.PRODS.reduce((a,p) => a+(stock[p]||0), 0);
+  const pills = document.getElementById("stockPills");
+  if (pills) pills.innerHTML = window.PRODS.map(p => {
+    const v = stock[p]||0;
+    const cls = v===0 ? "empty" : (limit && total/limit > 0.85) ? "low" : "ok";
+    return `<div class="sp"><span class="sp-name">${p}</span><span class="sp-val ${cls}" style="color:${window.COLORS[p]}">${v}</span></div>`;
+  }).join("");
+  const cap = document.getElementById("stockCap");
+  if (cap) {
+    if (limit) {
+      const pct = Math.min(100, Math.round(total/limit*100));
+      const free = Math.max(0, limit-total);
+      const color = total>=limit ? "#A32D2D" : pct>=85 ? "#EF9F27" : accentColor;
+      cap.innerHTML = `<span class="cap-nums" style="color:${color}">${total} / ${limit}</span>
+        <div class="cap-bar-wrap"><div class="cap-bar" style="width:${pct}%;background:${color}"></div></div>
+        <span class="cap-sub">${pct}% · ${free} libres</span>`;
+    } else {
+      cap.innerHTML = `<span class="cap-nums" style="color:${accentColor}">${total} uds</span>
+        <div class="cap-bar-wrap"><div class="cap-bar" style="width:55%;background:${accentColor};opacity:.6"></div></div>
+        <span class="cap-sub">sin límite</span>`;
+    }
+  }
+};
+
+/* Modal genérico */
+window.SupplyModal = class {
+  constructor(overlayId, rowsContId, alertId) {
+    this.overlay = document.getElementById(overlayId);
+    this.rowsContId = rowsContId;
+    this.alertId = alertId;
+    this.rows = [{ producto: window.PRODS[0], cantidad: 1 }];
+    this.overlay.addEventListener("click", e => { if(e.target===this.overlay) this.close(); });
+  }
+  open(fieldDefaults = {}) {
+    this.rows = [{ producto: window.PRODS[0], cantidad: 1 }];
+    this._render();
+    Object.keys(fieldDefaults).forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.value = fieldDefaults[k] || "";
+    });
+    const a = document.getElementById(this.alertId); if(a) a.className = "alert-m";
+    this.overlay.classList.add("open");
+  }
+  close() { this.overlay.classList.remove("open"); }
+  setRows(rows) {
+    this.rows = rows && rows.length ? rows.map(r=>({producto:r.producto,cantidad:r.cantidad})) : [{producto:window.PRODS[0],cantidad:1}];
+    this._render();
+  }
+  addRow() { this.rows.push({ producto: window.PRODS[0], cantidad: 1 }); this._render(); }
+  removeRow(i) { if (this.rows.length > 1) { this.rows.splice(i, 1); this._render(); } }
+  update(i, f, v) { this.rows[i][f] = f === "cantidad" ? (parseInt(v)||0) : v; }
+  alert(msg, err) {
+    const el = document.getElementById(this.alertId); if(!el) return;
+    el.textContent = msg; el.className = "alert-m show" + (err?" error":"");
+    setTimeout(() => el.className = "alert-m", 5000);
+  }
+  getItems() { return this.rows.filter(r => r.cantidad > 0); }
+  _render() {
+    const id = this.overlay.id;
+    const c = document.getElementById(this.rowsContId); if(!c) return;
+    c.innerHTML = this.rows.map((r,i)=>`
+      <div class="row-m">
+        <select onchange="window.__supply_${id}.update(${i},'producto',this.value)">
+          ${window.PRODS.map(p=>`<option value="${p}" ${r.producto===p?"selected":""}>${p}</option>`).join("")}
+        </select>
+        <input type="number" min="1" value="${r.cantidad}" placeholder="Uds"
+          oninput="window.__supply_${id}.update(${i},'cantidad',this.value)"/>
+        <button class="row-rm-btn" onclick="window.__supply_${id}.removeRow(${i})"
+          ${this.rows.length===1?"disabled style='opacity:.25;cursor:default'":""}>×</button>
+      </div>`).join("");
+  }
+};
+window.createSupplyModal = function(overlayId, rowsContId, alertId) {
+  const m = new window.SupplyModal(overlayId, rowsContId, alertId);
+  window[`__supply_${overlayId}`] = m;
+  return m;
+};
+
+/* Watcher de expiración: el responsable monitorea sus propios pedidos */
+window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
+  const { doc, runTransaction, collection, addDoc, serverTimestamp } = fns;
+  setInterval(async () => {
+    const now = Date.now();
+    const ordenes = ordenesObservable();
+    for (const o of ordenes) {
+      if (o.responsable !== miAgente) continue;
+      if (o.estado !== "pendiente") continue;
+      if (!o.deadlineMs || now < o.deadlineMs) continue;
+      try {
+        let didTransition = false;
+        await runTransaction(db, async (tx) => {
+          const ref = doc(db, "ordenes", o.id);
+          const snap = await tx.get(ref);
+          if (!snap.exists()) return;
+          const d = snap.data();
+          if (d.estado === "pendiente" && !d.penalizada) {
+            tx.update(ref, { estado: "atrasado", penalizada: true });
+            didTransition = true;
+          }
+        });
+        if (didTransition) {
+          await addDoc(collection(db, "penalizaciones"), {
+            empresa: miAgente, motivo: "Tiempo vencido",
+            detalle: `${o.codigo} no entregada en 3 min`,
+            codigoOrden: o.codigo, timestamp: serverTimestamp()
+          });
+          window.showToast("⏰", "Tiempo vencido", `${o.codigo} venció — penalización aplicada`);
+        }
+      } catch (e) { console.error("Expiration watcher", e); }
+    }
+  }, 1500);
+};
+
+/* Watcher de completion */
+window.startCompletionWatcher = function(db, fns, ordenesObservable, albaranesByCodigoFn, completedKey, expectedTipoAlbaran) {
+  const { doc, updateDoc } = fns;
+  setInterval(async () => {
+    const ordenes = ordenesObservable();
+    for (const o of ordenes) {
+      if (["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(o.estado)) continue;
+      const albs = albaranesByCodigoFn(o.codigo).filter(a => !expectedTipoAlbaran || a.tipo === expectedTipoAlbaran);
+      const rem = window.itemsRemaining(o, albs);
+      if (rem.length && rem.every(r => r.pendiente === 0)) {
+        const wasOverdue = o.estado === "atrasado" || (o.deadlineMs && Date.now() > o.deadlineMs);
+        const nuevoEstado = wasOverdue
+          ? (completedKey === "enviado" ? "enviado_tarde" : "recibido_tarde")
+          : completedKey;
+        try {
+          await updateDoc(doc(db, "ordenes", o.id), { estado: nuevoEstado });
+        } catch(e) { console.error("Completion watcher", e); }
+      }
+    }
+  }, 2000);
+};
+
+/* Render de tarjeta de orden */
+window.renderOrderCard = function(orden, options = {}) {
+  const items = (orden.items||[]).map(it => `${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
+  const albs = options.albaranes || [];
+  const rem = window.itemsRemaining(orden, albs);
+  const computedState = window.computeOrderState(orden, albs, options.completedKey||"recibido");
+  const stateLabel = {
+    pendiente: "Pendiente", parcial: "Parcial", atrasado: "Atrasado",
+    recibido: "✓ Recibido", enviado: "✓ Enviado",
+    recibido_tarde: "Recibido tarde", enviado_tarde: "Enviado tarde",
+    cancelado: "Cancelado"
+  }[computedState] || computedState;
+
+  let progressLine = "";
+  if (window.itemsAnyDelivered(rem) && !["recibido","enviado","cancelado"].includes(computedState)) {
+    const txt = rem.map(r => `${window.shortProd(r.producto)}: ${r.entregado}/${r.pedido}`).join(" · ");
+    progressLine = `<div class="oc-progress">📦 ${txt}</div>`;
+  }
+
+  let timerHtml = "";
+  if (options.showTimer && ["pendiente","parcial"].includes(computedState)) {
+    timerHtml = `<div class="oc-timer" id="tmr-${orden.id}" data-deadline="${orden.deadlineMs||0}" data-accent="${options.accentColor||'#1D9E75'}" style="color:${options.accentColor||'#1D9E75'}">3:00</div>`;
+  } else if (computedState === "atrasado" && options.showTimer) {
+    timerHtml = `<div class="oc-timer expired">¡VENCIDO!</div>`;
+  }
+
+  let actionsHtml = "";
+  if (options.showCancel && ["pendiente","parcial","atrasado"].includes(computedState)) {
+    actionsHtml = `<div class="oc-actions"><button class="oc-btn cancel" onclick="${options.onCancel}('${orden.id}','${orden.codigo}')">Cancelar orden</button></div>`;
+  }
+
+  const refTxt = orden.referencia ? `<br>Ref: <span style="font-family:Menlo,monospace">${orden.referencia}</span>` : "";
+  const meta = [];
+  if (orden.emisor && orden.emisor !== options.viewerId) meta.push(`De: ${window.AGENT_LABEL[orden.emisor]||orden.emisor}`);
+  if (orden.destino && orden.destino !== options.viewerId) meta.push(`A: ${window.AGENT_LABEL[orden.destino]||orden.destino}`);
+  if (orden.cliente) meta.push(`Cliente: ${orden.cliente}`);
+  if (orden.tipoVenta) meta.push(`Tipo: ${orden.tipoVenta}`);
+  if (orden.destinoFinal && orden.destinoFinal !== orden.destino) meta.push(`→ ${window.AGENT_LABEL[orden.destinoFinal]||orden.destinoFinal}`);
+  const tm = orden.timestamp ? new Date(orden.timestamp.toDate ? orden.timestamp.toDate() : orden.timestamp).toLocaleTimeString("es-PE") : "—";
+
+  return `<div class="order-card ${computedState}">
+    <div class="oc-head">
+      <span class="oc-codigo">${orden.codigo}</span>
+      <span class="estado-badge ${computedState}">${stateLabel}</span>
+    </div>
+    <div class="oc-items">${items}</div>
+    <div class="oc-meta">${tm} · ${meta.join(" · ")}${refTxt}</div>
+    ${progressLine}
+    ${timerHtml}
+    ${actionsHtml}
+  </div>`;
+};
+
+/* Updater de timers globales */
+window.tickTimers = function() {
+  document.querySelectorAll(".oc-timer[data-deadline]").forEach(el => {
+    const dl = parseInt(el.dataset.deadline) || 0;
+    if (!dl) return;
+    const rem = dl - Date.now();
+    if (rem <= 0) {
+      el.textContent = "¡VENCIDO!"; el.className = "oc-timer expired"; return;
+    }
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+    el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+    el.className = "oc-timer" + (rem<60000 ? " warn" : "");
+    if (rem >= 60000) el.style.color = el.dataset.accent;
+  });
+};
+setInterval(window.tickTimers, 500);
+
+/* Notificaciones */
+window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
+  const c = document.getElementById(containerId); if(!c) return;
+  if (!notifs.length) { c.innerHTML = `<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem 0;">Sin llegadas.</p>`; return; }
+  c.innerHTML = notifs.map(n => {
+    const t = n.timestamp ? new Date(n.timestamp.toDate?n.timestamp.toDate():n.timestamp).toLocaleTimeString("es-PE") : "—";
+    const items = (n.items||[]).map(it => `${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
+    const orig = window.AGENT_LABEL[n.origen] || n.origen;
+    const ref = n.codigoOrden ? `<br>Para registrar contra: <b style="font-family:Menlo,monospace">${n.codigoOrden}</b>` : "";
+    if (n.estado === "registrada") {
+      return `<div class="notif-card registrada">
+        <div class="notif-title">✓ Registrado: ${items}</div>
+        <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}</div>
+      </div>`;
+    }
+    return `<div class="notif-card">
+      <div class="notif-title">● Llegó: ${items}</div>
+      <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}${ref}<br><i>Regístralo en Albaranes de entrada.</i></div>
+      <button class="notif-btn" onclick="${onRegistrar}('${n.id}')">✓ Ya lo registré</button>
+    </div>`;
+  }).join("");
+};
+
+window.showToast = function(icon, title, body) {
+  let c = document.getElementById("toastContainer");
+  if (!c) {
+    c = document.createElement("div");
+    c.id = "toastContainer"; c.className = "toast-container";
+    document.body.appendChild(c);
+  }
+  const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = `<div class="toast-icon">${icon}</div>
+    <div style="flex:1"><div class="toast-title">${title}</div><div class="toast-body">${body}</div></div>
+    <div class="toast-close" onclick="this.parentElement.remove()">×</div>`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 6000);
+};
+
+window.showPenModal = function(motivo, detalle, empresa, hora, total, icon) {
+  let overlay = document.getElementById("penModalOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "penModalOverlay"; overlay.className = "modal-overlay";
+    overlay.innerHTML = `<div class="pen-modal" id="penModalBox"></div>`;
+    overlay.addEventListener("click", e => { if(e.target===overlay) overlay.classList.remove("open"); });
+    document.body.appendChild(overlay);
+  }
+  document.getElementById("penModalBox").innerHTML = `
+    <div class="pen-modal-top">
+      <div class="pen-icon-big">${icon||"⚠️"}</div>
+      <div class="pen-modal-title">${motivo}</div>
+      <div class="pen-modal-sub">${detalle}</div>
+    </div>
+    <div class="pen-modal-body">
+      <div class="pen-detail-row"><span class="pen-detail-lbl">Empresa</span><span class="pen-detail-val">${empresa}</span></div>
+      <div class="pen-detail-row"><span class="pen-detail-lbl">Hora</span><span class="pen-detail-val">${hora}</span></div>
+      <div class="pen-detail-row"><span class="pen-detail-lbl">Total penalizaciones</span><span class="pen-detail-val" style="color:#A32D2D">${total}</span></div>
+    </div>
+    <div class="pen-modal-footer">
+      <button class="pen-ok-btn" onclick="document.getElementById('penModalOverlay').classList.remove('open')">Entendido</button>
+    </div>`;
+  overlay.classList.add("open");
+};
+
+window.renderPenList = function(containerId, badgeId, rows, empresaLabel) {
+  const c = document.getElementById(containerId);
+  const b = document.getElementById(badgeId);
+  if (b) b.textContent = rows.length || "0";
+  if (!c) return;
+  if (!rows.length) { c.innerHTML = '<p style="font-size:13px;color:#b4b2a9;padding:1rem 0;">Sin penalizaciones.</p>'; return; }
+  c.innerHTML = rows.map(r => {
+    const t = r.timestamp ? new Date(r.timestamp.toDate?r.timestamp.toDate():r.timestamp).toLocaleTimeString("es-PE") : "—";
+    const det = (r.detalle||"").replace(/'/g,"&#39;");
+    return `<div class="notif-card" style="border-left-color:#A32D2D;background:#fff5f5;cursor:pointer;" onclick="window.showPenModal('${r.motivo}','${det}','${empresaLabel}','${t}',${rows.length},'⏰')">
+      <div class="notif-title" style="color:#A32D2D">${r.motivo}</div>
+      <div class="notif-detail">${t} · ${det}${r.codigoOrden?` · ${r.codigoOrden}`:""}</div>
+    </div>`;
+  }).join("");
+};
+
+window.switchTabSupply = function(name, el) {
+  const root = el.closest(".tabs-supply").parentElement;
+  root.querySelectorAll(".tab-supply").forEach(t => t.classList.remove("active"));
+  root.querySelectorAll(".tab-content-supply").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  const target = root.querySelector("#tab-" + name);
+  if (target) target.classList.add("active");
+};
+
+/* Validación: ¿puedo entregar estos items contra esta orden? */
+window.validateDelivery = function(orderItems, deliveredItemsList, accumulatedDelivered) {
+  const order = {};
+  for (const it of orderItems) order[it.producto] = it.cantidad;
+  for (const it of deliveredItemsList) {
+    const already = accumulatedDelivered[it.producto] || 0;
+    const max = order[it.producto] || 0;
+    if (already + it.cantidad > max) {
+      return { ok: false, error: `${window.shortProd(it.producto)}: solo quedan ${Math.max(0, max - already)} pendientes (pediste entregar ${it.cantidad}).` };
+    }
+    if (!order[it.producto]) {
+      return { ok: false, error: `${window.shortProd(it.producto)} no figura en la orden.` };
+    }
+  }
+  return { ok: true };
+};
