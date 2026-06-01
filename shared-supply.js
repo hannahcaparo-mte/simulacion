@@ -430,7 +430,7 @@ window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
     }
     return `<div class="notif-card">
       <div class="notif-title">● Llegó: ${items}</div>
-      <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}${ref}<br><i>Regístralo en Albaranes de entrada.</i></div>
+      <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}${ref}<br><i>Pulsa "Registrar lo recibido" para sumarlo a tu stock.</i></div>
       <button class="notif-btn" onclick="${onRegistrar}('${n.id}')">✓ Ya lo registré</button>
     </div>`;
   }).join("");

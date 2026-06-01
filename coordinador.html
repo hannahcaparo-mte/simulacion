@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="shared.css"/>
   <link rel="stylesheet" href="shared-supply.css"/>
   <style>
+    :root { --c-accent:#534AB7; --c-bg:#EEEDFE; --c-border:#AFA9EC;
+      --c-badge-bg:#AFA9EC; --c-badge-text:#332E76; --c-name:#332E76; }
     .pen-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:1.5rem; }
     .pen-card { background:#fff; border:1px solid #e5e4de; border-radius:10px; padding:12px; text-align:center; }
     .pen-name { font-size:11px; color:#888780; margin-bottom:4px; }
@@ -19,6 +21,7 @@
     .stk-pill-label { font-size:10px; color:#888780; margin-bottom:2px; }
     .stk-pill-val { font-size:15px; font-weight:600; }
     .mini-donut { width:104px; height:104px; }
+    .page-narrow { max-width: 1180px; }
     @media (max-width:760px){ .pen-grid{grid-template-columns:repeat(3,1fr);} .company-row{grid-template-columns:1fr;} }
 
     .flow-map { background:#fff; border:1px solid #e5e4de; border-radius:14px; padding:20px 22px; margin-bottom:1.5rem; }
@@ -45,18 +48,27 @@
   </style>
 </head>
 <body>
-<div class="topbar">
-  <div><div class="topbar-title">Coordinador - Cadena de Suministros</div><div class="topbar-sub">Vista global de la simulacion</div></div>
-  <div style="display:flex;align-items:center;gap:14px;">
-    <span class="pause-status run" id="pauseStatus">● En marcha</span>
-    <button class="pause-btn is-run" id="pauseBtn" onclick="window.togglePausa()">⏸ Pausar simulación</button>
-    <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
+<div class="agent-header">
+  <div class="agent-header-inner">
+    <div class="agent-id">
+      <div class="agent-accent"></div>
+      <img src="LOGO.png" alt="logo"/>
+      <div>
+        <div class="agent-name">🎯 COORDINADOR</div>
+        <span class="agent-role-badge">Vista global de la simulación</span>
+      </div>
+    </div>
+    <div class="stock-header">
+      <span class="pause-status run" id="pauseStatus">● En marcha</span>
+      <button class="pause-btn is-run" id="pauseBtn" onclick="window.togglePausa()">⏸ Pausar simulación</button>
+      <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
+    </div>
   </div>
 </div>
 
-<div class="page">
+<div class="page-narrow">
   <div class="flow-map">
-    <p class="section-title" style="margin-bottom:14px;">Cómo fluye la cadena de suministros</p>
+    <p class="section-title-sm" style="margin-bottom:14px;">Cómo fluye la cadena de suministros</p>
     <div class="flow-legend">
       <span class="flow-tag canal-mod">● Canal moderno (retail)</span>
       <span class="flow-tag canal-trad">● Canal tradicional</span>
@@ -84,29 +96,29 @@
     <p class="flow-note">UNILEVER PERÚ coordina los pedidos: recibe las solicitudes de Tottus CD y Yichang, y le pide a CETLOG (su almacén) que despache. Si CETLOG no tiene stock, compra a Unilever México.</p>
   </div>
 
-  <p class="section-title">Penalizaciones por empresa</p>
+  <p class="section-title-sm" style="margin-bottom:8px;">Penalizaciones por empresa</p>
   <div class="pen-grid" id="penGrid"></div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('stocks')">Stocks</button>
-    <button class="tab" onclick="switchTab('ordenes')">Ordenes (global)</button>
-    <button class="tab" onclick="switchTab('albaranes')">Albaranes (global)</button>
-    <button class="tab" onclick="switchTab('penhist')">Historial penalizaciones</button>
+  <div class="tabs-supply">
+    <button class="tab-supply active" onclick="switchTab('stocks',this)">Stocks</button>
+    <button class="tab-supply" onclick="switchTab('ordenes',this)">Órdenes</button>
+    <button class="tab-supply" onclick="switchTab('albaranes',this)">Movimientos</button>
+    <button class="tab-supply" onclick="switchTab('penhist',this)">Penalizaciones</button>
   </div>
 
-  <div class="tab-content active" id="tab-stocks"><div class="companies-charts" id="chartsGrid"></div></div>
+  <div class="tab-content-supply active" id="tab-stocks"><div class="companies-charts" id="chartsGrid"></div></div>
 
-  <div class="tab-content" id="tab-ordenes"><div class="table-wrap"><table>
-    <thead><tr><th>Codigo</th><th>Hora</th><th>Emisor</th><th>Destino</th><th>Items</th><th>Estado</th></tr></thead>
-    <tbody id="ordenesBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin ordenes.</td></tr></tbody>
+  <div class="tab-content-supply" id="tab-ordenes"><div class="tbl-wrap-s"><table class="tbl-supply">
+    <thead><tr><th>Código</th><th>Hora</th><th>Emisor</th><th>Destino</th><th>Items</th><th>Estado</th></tr></thead>
+    <tbody id="ordenesBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin órdenes.</td></tr></tbody>
   </table></div></div>
 
-  <div class="tab-content" id="tab-albaranes"><div class="table-wrap"><table>
-    <thead><tr><th>Codigo</th><th>Hora</th><th>Tipo</th><th>Orden ref.</th><th>Items</th><th>Entrega</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+  <div class="tab-content-supply" id="tab-albaranes"><div class="tbl-wrap-s"><table class="tbl-supply">
+    <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden ref.</th><th>Items</th><th>Entrega</th></tr></thead>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 
-  <div class="tab-content" id="tab-penhist"><div class="table-wrap"><table>
+  <div class="tab-content-supply" id="tab-penhist"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Hora</th><th>Empresa</th><th>Motivo</th><th>Detalle</th></tr></thead>
     <tbody id="penHistBody"><tr><td colspan="4" style="text-align:center;padding:2rem;color:#b4b2a9;">Sin penalizaciones.</td></tr></tbody>
   </table></div></div>
@@ -225,10 +237,10 @@ function renderPenHist(rows){
     return `<tr><td style="color:#888780">${t}</td><td>${COMPANIES[r.empresa]?COMPANIES[r.empresa].label:r.empresa}</td><td><span class="estado-badge atrasado">${r.motivo}</span></td><td style="font-size:12px;color:#5f5e5a">${r.detalle||""}</td></tr>`;
   }).join("");
 }
-window.switchTab=function(t){
-  const order=["stocks","ordenes","albaranes","penhist"];
-  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",order[i]===t));
-  document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
+window.switchTab=function(t, el){
+  document.querySelectorAll(".tab-supply").forEach(b=>b.classList.remove("active"));
+  if(el) el.classList.add("active");
+  document.querySelectorAll(".tab-content-supply").forEach(c=>c.classList.remove("active"));
   document.getElementById("tab-"+t).classList.add("active");
 };
 renderPenGrid(); renderCharts();
