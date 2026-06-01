@@ -241,17 +241,9 @@ window.renderOrderCard = function(orden, options = {}) {
     recibido_tarde: "✓", enviado_tarde: "✓", cancelado: "×"
   }[computedState] || "";
 
-  // Lista de items con chips de color
-  const itemChips = (orden.items||[]).map(it => {
-    const col = window.COLORS[it.producto] || "#888780";
-    return `<span class="oc-chip"><span class="oc-chip-dot" style="background:${col}"></span>${window.shortProd(it.producto)} <b>×${it.cantidad}</b></span>`;
-  }).join("");
-
-  // Barra de progreso por producto (cuando hay algo entregado y no está completa/cancelada)
+  // Barra de progreso por producto — se muestra siempre (desde 0/N), salvo cancelado
   let progressHtml = "";
-  const anyDelivered = window.itemsAnyDelivered(rem);
-  const isClosed = ["recibido","enviado","recibido_tarde","enviado_tarde","cancelado"].includes(computedState);
-  if (anyDelivered && !["pendiente","cancelado"].includes(computedState)) {
+  if (computedState !== "cancelado") {
     const bars = rem.map(r => {
       const pct = r.pedido ? Math.min(100, Math.round(r.entregado/r.pedido*100)) : 0;
       const col = window.COLORS[r.producto] || "#888780";
@@ -263,6 +255,13 @@ window.renderOrderCard = function(orden, options = {}) {
       </div>`;
     }).join("");
     progressHtml = `<div class="oc-progress-box">${bars}</div>`;
+  } else {
+    // Para canceladas, mostrar los items pedidos como referencia simple
+    progressHtml = (orden.items||[]).map(it => {
+      const col = window.COLORS[it.producto] || "#888780";
+      return `<span class="oc-chip"><span class="oc-chip-dot" style="background:${col}"></span>${window.shortProd(it.producto)} <b>×${it.cantidad}</b></span>`;
+    }).join("");
+    progressHtml = `<div class="oc-chips">${progressHtml}</div>`;
   }
 
   let timerHtml = "";
@@ -294,7 +293,6 @@ window.renderOrderCard = function(orden, options = {}) {
       </button>
       <span class="estado-badge ${computedState}"><span class="eb-ic">${stateIcon}</span>${stateLabel}</span>
     </div>
-    <div class="oc-chips">${itemChips}</div>
     ${progressHtml}
     <div class="oc-foot">
       <span class="oc-meta-line">${tm}${meta.length?' · '+meta.join(' · '):''}</span>
