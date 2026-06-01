@@ -12,6 +12,7 @@
   </style>
 </head>
 <body>
+<div class="pause-overlay"><div class="pause-card"><div class="pico">⏸</div><div class="ptit">Simulación en pausa</div><div class="psub">El coordinador ha pausado. Los temporizadores están congelados.</div></div></div>
 
 <div class="agent-header">
   <div class="agent-header-inner">
@@ -32,34 +33,41 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="info-box-supply">Recibes OCs de UNILEVER PERÚ. Crea una orden de venta (OVEN) → emite albaranes de salida (parcial o completa) contra ella.</div>
+  <div class="guide-box">
+    <div class="guide-role">Eres la <b>fábrica</b>. Produces y vendes a Unilever Perú (que lo recibe en su almacén CETLOG).</div>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="gs-num">1</span><span>Cuando te llega un <b>pedido de compra</b> (lo ves en el panel derecho), pulsa <b>"Registrar venta"</b> en esa tarjeta.</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span>Tienes <b>3 minutos</b> para entregar. Pulsa <b>"Enviar productos"</b> e indica cuánto despachas (puede ser por partes).</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span>Cuando entregues todo, el pedido se marca <b>Enviado</b> automáticamente. Si se acaba el tiempo antes, recibes una penalización.</span></div>
+    </div>
+  </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Nueva orden de venta</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">+ Albarán de salida</button>
+    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Registrar venta manual</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar productos</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Órdenes activas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes de salida</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Pedidos recibidos</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Mis envíos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oven"><div id="ovenContainer"></div></div>
   <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Código</th><th>Hora</th><th>Orden</th><th>Items</th><th>Tipo</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+    <tbody id="albBody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 </div></div>
 
 <div class="right-panel">
   <p class="section-title-sm">OCs entrantes de UNILEVER PERÚ</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:10px;">Crea una OVEN respuesta y luego despacha.</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:10px;">Registra la venta y luego envía los productos.</p>
   <div id="ocsEntrantes"></div>
 </div>
 
 <div class="modal-overlay" id="mOven">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Nueva orden de venta</div><div class="modal-sub">Código UM-OVEN auto · timer 3 min</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar venta</div><div class="modal-sub">Tendrás 3 minutos para entregar</div></div>
       <button class="modal-close" onclick="window.__supply_mOven.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de origen</label>
@@ -76,14 +84,14 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOven.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOVEN()">Crear orden →</button>
+      <button class="btn-m primary" onclick="window.crearOVEN()">Registrar venta →</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de salida</div><div class="modal-sub">Código UM-DESP auto · descuenta stock</div></div>
+    <div class="modal-header"><div><div class="modal-title">Enviar productos</div><div class="modal-sub">Indica cuánto despachas · descuenta tu stock</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Código de orden de venta</label>
@@ -111,7 +119,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
 const ID="UNILEVER_MEX", ACCENT="#185FA5";
 const INIT={Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96};
 
@@ -126,6 +134,9 @@ window.abrirDESP=()=>{ mDesp.open({dpCodigo:""}); document.getElementById("dpPre
   if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
   window.renderHeader(stock,null,ACCENT);
 })();
+// Reloj global con pausa
+window.subscribeClock(db, fns, ()=>{});
+
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,null,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN();
@@ -155,7 +166,7 @@ function renderOVEN(){
 
 function renderAlb(){
   const b=document.getElementById("albBody");
-  if(!albaranes.length){ b.innerHTML='<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  if(!albaranes.length){ b.innerHTML='<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
   b.innerHTML=albaranes.map(a=>{
     const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
@@ -174,7 +185,7 @@ function renderOCs(){
     return `<div class="notif-card" style="background:#fff;border-color:#B5D4F4;border-left-color:#185FA5">
       <div class="notif-title" style="color:#0C447C">📥 ${o.codigo}</div>
       <div class="notif-detail">${items}<br>De: ${window.AGENT_LABEL[o.emisor]}</div>
-      <button class="notif-btn" onclick="window.responderOVEN('${o.codigo}','${itemsJson}')">+ Crear OVEN respuesta</button>
+      <button class="notif-btn" onclick="window.responderOVEN('${o.codigo}','${itemsJson}')">✓ Registrar venta</button>
     </div>`;
   }).join("");
 }
@@ -198,7 +209,7 @@ window.crearOVEN=async function(){
     items, estado:"pendiente", responsable:ID,
     referencia:ref||null,
     timestamp:serverTimestamp(),
-    deadlineMs: Date.now()+window.TIMER_MS
+    deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   mOven.close();
   window.showToast("📋","Orden creada",`${codigo} con timer de 3 min`);

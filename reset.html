@@ -105,6 +105,8 @@ window.confirmarReset=async function(){
     document.getElementById("d-stocks").className="dot active";
     for(const [e,s] of Object.entries(INITIAL_STOCKS)) await setDoc(doc(db,"stocks",e),s);
     document.getElementById("d-stocks").className="dot done"; document.getElementById("s-stocks").textContent="✓ Stocks restaurados";
+    // reloj global -> reiniciar a "en marcha" sin pausa acumulada
+    await setDoc(doc(db,"control","global"),{paused:false,totalPausedMs:0,pausedSince:null});
     document.getElementById("successBox").style.display="block";
     btn.textContent="✓ Completado";
   }catch(e){

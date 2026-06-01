@@ -12,6 +12,7 @@
   </style>
 </head>
 <body>
+<div class="pause-overlay"><div class="pause-card"><div class="pico">⏸</div><div class="ptit">Simulación en pausa</div><div class="psub">El coordinador ha pausado. Los temporizadores están congelados.</div></div></div>
 
 <div class="agent-header">
   <div class="agent-header-inner">
@@ -32,39 +33,46 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="info-box-supply">Vendes a Don Tito (OVEN → albaranes de salida) y compras a UNILEVER PERÚ (OCOM → albaranes de entrada). El stock baja en cada salida parcial y sube en cada recepción parcial.</div>
+  <div class="guide-box">
+    <div class="guide-role">Eres un <b>mayorista del canal tradicional</b>. Le vendes a Don Tito (bodeguero) y te abasteces comprándole a Unilever Perú.</div>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender a Don Tito"</b>. Tendrás 3 minutos para entregar con <b>"Entregar a Don Tito"</b> (descuenta tu stock).</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Comprar a Unilever Perú"</b>. Cuando llegue la mercadería (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span>Las ventas se marcan <b>Enviado</b> al entregar todo; las compras se marcan <b>Recibido</b> al recibir todo.</span></div>
+    </div>
+  </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Orden de venta (Don Tito)</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">+ Albarán de salida</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">+ Orden de compra (UP)</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">+ Albarán de entrada</button>
+    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Vender a Don Tito</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Entregar a Don Tito</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Comprar a Unilever Perú</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Ventas activas (OVEN)</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Compras activas (OCOM)</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Mis ventas</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Mis compras</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oven"><div id="ovenContainer"></div></div>
   <div class="tab-content-supply" id="tab-ocom"><div id="ocomContainer"></div></div>
   <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden</th><th>Items</th><th>Entrega</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 </div></div>
 
 <div class="right-panel">
   <p class="section-title-sm">Llegadas de CETLOG</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra cada llegada vía albarán de entrada (OCOM).</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra lo que llega de Unilever Perú.</p>
   <div id="notifContainer"></div>
 </div>
 
 <!-- Modal OVEN -->
 <div class="modal-overlay" id="mOven">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de venta — Don Tito</div><div class="modal-sub">YI-OVEN · timer 3 min</div></div>
+    <div class="modal-header"><div><div class="modal-title">Vender a Don Tito</div><div class="modal-sub">Tendrás 3 minutos para entregar</div></div>
       <button class="modal-close" onclick="window.__supply_mOven.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de origen</label>
@@ -89,7 +97,7 @@
 <!-- Modal DESP -->
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de salida (Don Tito)</div><div class="modal-sub">YI-DESP · descuenta stock</div></div>
+    <div class="modal-header"><div><div class="modal-title">Entregar a Don Tito</div><div class="modal-sub">Indica cuánto entregas · descuenta tu stock</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Código de orden de venta</label>
@@ -112,7 +120,7 @@
 <!-- Modal OCOM -->
 <div class="modal-overlay" id="mOcom">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de compra — UNILEVER PERÚ</div><div class="modal-sub">YI-OCOM · timer 3 min</div></div>
+    <div class="modal-header"><div><div class="modal-title">Comprar a Unilever Perú</div><div class="modal-sub">Tu solicitud a Unilever Perú</div></div>
       <button class="modal-close" onclick="window.__supply_mOcom.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Proveedor</label>
@@ -125,7 +133,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCOM()">Crear OCOM →</button>
+      <button class="btn-m primary" onclick="window.crearOCOM()">Comprar →</button>
     </div>
   </div>
 </div>
@@ -133,7 +141,7 @@
 <!-- Modal RECEP -->
 <div class="modal-overlay" id="mRecep">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de entrada</div><div class="modal-sub">YI-RECEP · suma stock · contra una OCOM</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo recibido de tu compra</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Código de orden de compra</label>
@@ -161,7 +169,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
 const ID="YICHANG", ACCENT="#BA7517", LIMIT=120;
 const INIT={Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40};
 
@@ -179,6 +187,9 @@ window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpP
   if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
   window.renderHeader(stock,LIMIT,ACCENT);
 })();
+// Reloj global con pausa
+window.subscribeClock(db, fns, ()=>{});
+
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN(); renderOCOM();
@@ -221,7 +232,7 @@ function renderOCOM(){
 }
 function renderAlb(){
   const b=document.getElementById("albBody");
-  if(!albaranes.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  if(!albaranes.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
   b.innerHTML=albaranes.map(a=>{
     const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
@@ -241,7 +252,7 @@ window.crearOVEN=async function(){
     codigo, prefix:"YI-OVEN", emisor:ID, destino:"DON_TITO",
     almacenOrigen:"YICHANG", cliente, tipo:"venta", tipoVenta,
     items, estado:"pendiente", responsable:ID,
-    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   mOven.close();
   window.showToast("📋","Venta creada",`${codigo} (${tipoVenta})`);
@@ -298,7 +309,7 @@ window.crearOCOM=async function(){
     codigo, prefix:"YI-OCOM", emisor:ID, destino:"UNILEVER_PERU", destinoFinal:ID,
     proveedor:"UNILEVER PERÚ", tipo:"compra",
     items, estado:"pendiente", responsable:"UNILEVER_PERU",
-    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_PERU",notas:`${codigo} a UP`,timestamp:serverTimestamp()});
   mOcom.close();

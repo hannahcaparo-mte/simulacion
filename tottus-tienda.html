@@ -12,6 +12,7 @@
   </style>
 </head>
 <body>
+<div class="pause-overlay"><div class="pause-card"><div class="pico">⏸</div><div class="ptit">Simulación en pausa</div><div class="psub">El coordinador ha pausado. Los temporizadores están congelados.</div></div></div>
 
 <div class="agent-header">
   <div class="agent-header-inner">
@@ -32,38 +33,45 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="info-box-supply">La orden de cliente (OCLI) es instantánea: descuenta stock al registrarse. Si no tienes stock, pide transferencia a TOTTUS CD (OTRAN) y recíbela con un albarán de entrada.</div>
+  <div class="guide-box">
+    <div class="guide-role">Eres una <b>tienda retail</b>. Le vendes directo al público y te abasteces pidiendo transferencias a tu centro de distribución, <b>Tottus CD</b>.</div>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender al cliente"</b>. La venta es inmediata y descuenta tu stock al instante (sin cronómetro).</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Pedir a Tottus CD"</b>. Ellos tienen 3 minutos para enviarte.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span>Cuando llega la transferencia (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla a tu stock.</span></div>
+    </div>
+  </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOcli.open()">+ Orden de cliente (venta)</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOtran.open()">+ Orden de transferencia (TCD)</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">+ Albarán de entrada</button>
+    <button class="btn-action primary" onclick="window.__supply_mOcli.open()">+ Vender al cliente</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOtran.open()">🛒 Pedir a Tottus CD</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('otran',this)">Transferencias activas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocli',this)">Ventas (OCLI)</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes de entrada</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('otran',this)">Mis pedidos a Tottus CD</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocli',this)">Mis ventas</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Recepciones</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-otran"><div id="otranContainer"></div></div>
   <div class="tab-content-supply" id="tab-ocli"><div id="ocliContainer"></div></div>
   <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Código</th><th>Hora</th><th>Orden</th><th>Items</th><th>Entrada</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+    <tbody id="albBody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 </div></div>
 
 <div class="right-panel">
   <p class="section-title-sm">Llegadas de TOTTUS CD</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra cada llegada vía albarán de entrada (OTRAN).</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra lo que llega de Tottus CD.</p>
   <div id="notifContainer"></div>
 </div>
 
 <!-- Modal OCLI -->
 <div class="modal-overlay" id="mOcli">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de cliente</div><div class="modal-sub">TTT-OCLI · venta directa instantánea · descuenta stock</div></div>
+    <div class="modal-header"><div><div class="modal-title">Vender al cliente</div><div class="modal-sub">Venta inmediata · descuenta tu stock al instante</div></div>
       <button class="modal-close" onclick="window.__supply_mOcli.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de origen</label>
@@ -84,7 +92,7 @@
 <!-- Modal OTRAN -->
 <div class="modal-overlay" id="mOtran">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de transferencia — TOTTUS CD</div><div class="modal-sub">TTT-OTRAN · timer 3 min</div></div>
+    <div class="modal-header"><div><div class="modal-title">Pedir a Tottus CD</div><div class="modal-sub">Tottus CD tendrá 3 minutos para enviarte</div></div>
       <button class="modal-close" onclick="window.__supply_mOtran.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Proveedor</label>
@@ -97,7 +105,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOtran.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOTRAN()">Crear OTRAN →</button>
+      <button class="btn-m primary" onclick="window.crearOTRAN()">Pedir a Tottus CD →</button>
     </div>
   </div>
 </div>
@@ -105,7 +113,7 @@
 <!-- Modal RECEP -->
 <div class="modal-overlay" id="mRecep">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de entrada</div><div class="modal-sub">TTT-RECEP · suma stock · contra una OTRAN</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo que llegó de Tottus CD</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Código de orden de transferencia</label>
@@ -133,7 +141,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
 const ID="TOTTUS_TIENDA", ACCENT="#993556", LIMIT=70;
 const INIT={Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12};
 
@@ -149,6 +157,9 @@ window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpP
   if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
   window.renderHeader(stock,LIMIT,ACCENT);
 })();
+// Reloj global con pausa
+window.subscribeClock(db, fns, ()=>{});
+
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOTRAN(); renderOCLI();
@@ -185,7 +196,7 @@ function renderOCLI(){
 }
 function renderAlb(){
   const b=document.getElementById("albBody");
-  if(!albaranes.length){ b.innerHTML='<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  if(!albaranes.length){ b.innerHTML='<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
   b.innerHTML=albaranes.map(a=>{
     const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
@@ -227,7 +238,7 @@ window.crearOTRAN=async function(){
     codigo, prefix:"TTT-OTRAN", emisor:ID, destino:"TOTTUS_CD", destinoFinal:ID,
     proveedor:"TOTTUS CD", tipo:"transferencia",
     items, estado:"pendiente", responsable:"TOTTUS_CD",
-    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   // Notificar a TCD (orden de transferencia entrante)
   await addDoc(collection(db,"notificaciones"),{

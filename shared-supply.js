@@ -11,6 +11,72 @@ window.AGENT_LABEL = {
 window.shortProd = function(p){ return p||"—"; };
 window.TIMER_MS = 180000;
 
+/* ═══════════════════════════════════════════════════════════
+   RELOJ GLOBAL CON PAUSA
+   El coordinador escribe control/global = { paused, totalPausedMs, pausedSince }
+   Todos los agentes leen ese doc y calculan "tiempo efectivo":
+   - Si está en pausa: el reloj se congela en pausedSince - totalPausedMs
+   - Si corre: Date.now() - totalPausedMs
+   Los deadlines se guardan en ms reales; se comparan contra effectiveNow().
+═══════════════════════════════════════════════════════════ */
+window.__clock = { paused: false, totalPausedMs: 0, pausedSince: null };
+
+window.effectiveNow = function() {
+  const c = window.__clock;
+  if (c.paused && c.pausedSince) return c.pausedSince - c.totalPausedMs;
+  return Date.now() - (c.totalPausedMs || 0);
+};
+
+window.isPaused = function() { return !!window.__clock.paused; };
+
+/* Suscribe el reloj global; onChange se llama en cada cambio (para refrescar UI) */
+window.subscribeClock = function(db, fns, onChange) {
+  const { doc, onSnapshot, setDoc, getDoc } = fns;
+  const ref = doc(db, "control", "global");
+  // inicializa SOLO si no existe (no pisar una pausa en curso)
+  if (getDoc) {
+    getDoc(ref).then(s => {
+      if (!s.exists()) setDoc(ref, { paused:false, totalPausedMs:0, pausedSince:null }).catch(()=>{});
+    }).catch(()=>{});
+  }
+  onSnapshot(ref, snap => {
+    if (snap.exists()) {
+      const d = snap.data();
+      window.__clock = {
+        paused: !!d.paused,
+        totalPausedMs: d.totalPausedMs || 0,
+        pausedSince: d.pausedSince || null
+      };
+    }
+    document.body.classList.toggle("sim-paused", window.__clock.paused);
+    if (onChange) onChange(window.__clock);
+  });
+};
+
+/* Acciones del coordinador */
+window.pauseSim = async function(db, fns) {
+  const { doc, runTransaction } = fns;
+  const ref = doc(db, "control", "global");
+  await runTransaction(db, async tx => {
+    const s = await tx.get(ref);
+    const d = s.exists() ? s.data() : { paused:false, totalPausedMs:0 };
+    if (d.paused) return;
+    tx.set(ref, { paused:true, pausedSince: Date.now(), totalPausedMs: d.totalPausedMs||0 }, { merge:true });
+  });
+};
+window.resumeSim = async function(db, fns) {
+  const { doc, runTransaction } = fns;
+  const ref = doc(db, "control", "global");
+  await runTransaction(db, async tx => {
+    const s = await tx.get(ref);
+    if (!s.exists()) return;
+    const d = s.data();
+    if (!d.paused) return;
+    const extra = Date.now() - (d.pausedSince || Date.now());
+    tx.set(ref, { paused:false, pausedSince:null, totalPausedMs: (d.totalPausedMs||0) + extra }, { merge:true });
+  });
+};
+
 /* Códigos auto-increment transaccional */
 window.getNextCode = async function(db, fns, prefix) {
   const { doc, runTransaction } = fns;
@@ -57,7 +123,7 @@ window.computeOrderState = function(orden, albaranes, completedKey="recibido") {
   if (["recibido","enviado","recibido_tarde","enviado_tarde"].includes(orden.estado)) return orden.estado;
   const rem = window.itemsRemaining(orden, albaranes);
   const complete = window.itemsAllDelivered(rem);
-  const wasOverdue = orden.estado === "atrasado" || (orden.deadlineMs && Date.now() > orden.deadlineMs);
+  const wasOverdue = orden.estado === "atrasado" || (orden.deadlineMs && window.effectiveNow() > orden.deadlineMs);
   if (complete) return wasOverdue ? (completedKey === "enviado" ? "enviado_tarde" : "recibido_tarde") : completedKey;
   if (window.itemsAnyDelivered(rem)) return wasOverdue ? "atrasado" : "parcial";
   return wasOverdue ? "atrasado" : "pendiente";
@@ -171,7 +237,8 @@ window.createSupplyModal = function(overlayId, rowsContId, alertId) {
 window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
   const { doc, runTransaction, collection, addDoc, serverTimestamp } = fns;
   setInterval(async () => {
-    const now = Date.now();
+    if (window.isPaused()) return; // congelado: no vence ni penaliza
+    const now = window.effectiveNow();
     const ordenes = ordenesObservable();
     for (const o of ordenes) {
       if (o.responsable !== miAgente) continue;
@@ -212,7 +279,7 @@ window.startCompletionWatcher = function(db, fns, ordenesObservable, albaranesBy
       const albs = albaranesByCodigoFn(o.codigo).filter(a => !expectedTipoAlbaran || a.tipo === expectedTipoAlbaran);
       const rem = window.itemsRemaining(o, albs);
       if (rem.length && rem.every(r => r.pendiente === 0)) {
-        const wasOverdue = o.estado === "atrasado" || (o.deadlineMs && Date.now() > o.deadlineMs);
+        const wasOverdue = o.estado === "atrasado" || (o.deadlineMs && window.effectiveNow() > o.deadlineMs);
         const nuevoEstado = wasOverdue
           ? (completedKey === "enviado" ? "enviado_tarde" : "recibido_tarde")
           : completedKey;
@@ -324,17 +391,24 @@ window.copyCode = function(code, btn) {
 
 /* Updater de timers globales */
 window.tickTimers = function() {
+  const paused = window.isPaused();
+  const now = window.effectiveNow();
   document.querySelectorAll(".oc-timer[data-deadline]").forEach(el => {
     const dl = parseInt(el.dataset.deadline) || 0;
     if (!dl) return;
-    const rem = dl - Date.now();
+    if (paused) {
+      el.classList.add("paused");
+    } else {
+      el.classList.remove("paused");
+    }
+    const rem = dl - now;
     if (rem <= 0) {
-      el.textContent = "¡VENCIDO!"; el.className = "oc-timer expired"; return;
+      el.textContent = "¡VENCIDO!"; el.className = "oc-timer expired" + (paused?" paused":""); return;
     }
     const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
     el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
-    el.className = "oc-timer" + (rem<60000 ? " warn" : "");
-    if (rem >= 60000) el.style.color = el.dataset.accent;
+    el.className = "oc-timer" + (rem<60000 ? " warn" : "") + (paused?" paused":"");
+    if (rem >= 60000 && !paused) el.style.color = el.dataset.accent;
   });
 };
 setInterval(window.tickTimers, 500);

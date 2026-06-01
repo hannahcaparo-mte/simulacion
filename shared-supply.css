@@ -339,3 +339,63 @@
   .with-panel { margin-right: 0; }
   .right-panel { position: static; width: 100%; height: auto; padding-top: 1rem; }
 }
+
+/* ── Estado de PAUSA global ── */
+.oc-timer.paused { color: #888780 !important; position: relative; }
+.oc-timer.paused::after { content: " ⏸"; font-size: 14px; }
+
+body.sim-paused .with-panel,
+body.sim-paused .right-panel { filter: grayscale(.4) opacity(.85); pointer-events: none; }
+body.sim-paused .action-bar button,
+body.sim-paused .oc-btn,
+body.sim-paused .notif-btn,
+body.sim-paused .tab-supply { pointer-events: none; }
+
+.pause-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(30,28,24,.32); backdrop-filter: blur(2px);
+  align-items: flex-start; justify-content: center; padding-top: 22vh;
+}
+body.sim-paused .pause-overlay { display: flex; }
+.pause-card {
+  background: #fff; border-radius: 16px; padding: 28px 36px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); border: 1px solid #e5e4de;
+}
+.pause-card .pico { font-size: 40px; margin-bottom: 8px; }
+.pause-card .ptit { font-size: 18px; font-weight: 700; color: #1a1a18; margin-bottom: 4px; }
+.pause-card .psub { font-size: 13px; color: #888780; }
+
+/* Botón pausa del coordinador */
+.pause-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: none; font-family: inherit; transition: all .15s;
+}
+.pause-btn.is-run { background: #BA7517; color: #fff; }
+.pause-btn.is-run:hover { background: #9c6213; }
+.pause-btn.is-paused { background: #1B7A47; color: #fff; }
+.pause-btn.is-paused:hover { background: #14633a; }
+.pause-status {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;
+}
+.pause-status.run { background: #DEF1E6; color: #1B7A47; }
+.pause-status.paused { background: #FBEAD3; color: #B0700F; }
+
+/* ── Guía paso a paso (reemplaza info-box) ── */
+.guide-box {
+  background: #fff; border: 1px solid #e5e4de; border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 1.1rem;
+  border-left: 4px solid var(--c-accent);
+}
+.guide-role { font-size: 13.5px; color: #3a3a36; margin-bottom: 12px; line-height: 1.5; }
+.guide-role b { color: var(--c-accent); }
+.guide-steps { display: flex; flex-direction: column; gap: 9px; }
+.guide-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #4a4a45; line-height: 1.5; }
+.guide-step b { color: #1a1a18; }
+.gs-num {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--c-accent); color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px;
+}

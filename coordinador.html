@@ -20,15 +20,70 @@
     .stk-pill-val { font-size:15px; font-weight:600; }
     .mini-donut { width:104px; height:104px; }
     @media (max-width:760px){ .pen-grid{grid-template-columns:repeat(3,1fr);} .company-row{grid-template-columns:1fr;} }
+
+    .flow-map { background:#fff; border:1px solid #e5e4de; border-radius:14px; padding:20px 22px; margin-bottom:1.5rem; }
+    .flow-legend { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
+    .flow-tag { font-size:12px; font-weight:500; }
+    .flow-tag.canal-mod { color:#0F6E56; }
+    .flow-tag.canal-trad { color:#BA7517; }
+    .flow-tag.fab { color:#185FA5; }
+    .flow-track { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .flow-node {
+      flex-shrink:0; min-width:96px; text-align:center; font-size:12px; font-weight:600; line-height:1.25;
+      padding:12px 10px; border-radius:12px; border:2px solid; background:#fff;
+    }
+    .flow-node .flow-sub { font-size:10px; font-weight:400; color:#888780; margin-top:4px; }
+    .flow-node.fab { border-color:#B5D4F4; background:#F2F8FE; color:#0C447C; }
+    .flow-node.mod { border-color:#A6E2CC; background:#F1FBF7; color:#0A4D3C; }
+    .flow-node.trad { border-color:#F8D7A3; background:#FEFAF2; color:#633806; }
+    .flow-arrow { font-size:22px; color:#b4b2a9; flex-shrink:0; }
+    .flow-arrow.sm { font-size:16px; }
+    .flow-split { display:flex; flex-direction:column; gap:12px; }
+    .flow-branch { display:flex; align-items:center; gap:8px; }
+    .flow-note { font-size:12.5px; color:#5f5e5a; line-height:1.6; margin-top:16px; background:#f9f8f5; padding:12px 14px; border-radius:9px; border-left:3px solid #97C459; }
+    @media (max-width:760px){ .flow-track{flex-direction:column;align-items:stretch;} .flow-arrow{transform:rotate(90deg);align-self:center;} }
   </style>
 </head>
 <body>
 <div class="topbar">
   <div><div class="topbar-title">Coordinador - Cadena de Suministros</div><div class="topbar-sub">Vista global de la simulacion</div></div>
-  <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <span class="pause-status run" id="pauseStatus">● En marcha</span>
+    <button class="pause-btn is-run" id="pauseBtn" onclick="window.togglePausa()">⏸ Pausar simulación</button>
+    <span id="connStatus" style="font-size:12px;color:#888780;">Conectando...</span>
+  </div>
 </div>
 
 <div class="page">
+  <div class="flow-map">
+    <p class="section-title" style="margin-bottom:14px;">Cómo fluye la cadena de suministros</p>
+    <div class="flow-legend">
+      <span class="flow-tag canal-mod">● Canal moderno (retail)</span>
+      <span class="flow-tag canal-trad">● Canal tradicional</span>
+      <span class="flow-tag fab">● Fábrica / almacén</span>
+    </div>
+
+    <div class="flow-track">
+      <div class="flow-node fab">🏭<br>UNILEVER<br>MÉXICO<div class="flow-sub">Fabrica</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node fab">📦<br>CETLOG<div class="flow-sub">Almacén de U. Perú</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-split">
+        <div class="flow-branch">
+          <div class="flow-node mod">🏪<br>TOTTUS CD<div class="flow-sub">Centro distrib.</div></div>
+          <div class="flow-arrow sm">→</div>
+          <div class="flow-node mod">🛒<br>TOTTUS<br>TIENDA<div class="flow-sub">Vende al público</div></div>
+        </div>
+        <div class="flow-branch">
+          <div class="flow-node trad">🏬<br>YICHANG<div class="flow-sub">Mayorista</div></div>
+          <div class="flow-arrow sm">→</div>
+          <div class="flow-node trad">🧍<br>DON TITO<div class="flow-sub">Bodega cliente</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="flow-note">UNILEVER PERÚ coordina los pedidos: recibe las solicitudes de Tottus CD y Yichang, y le pide a CETLOG (su almacén) que despache. Si CETLOG no tiene stock, compra a Unilever México.</p>
+  </div>
+
   <p class="section-title">Penalizaciones por empresa</p>
   <div class="pen-grid" id="penGrid"></div>
 
@@ -57,11 +112,30 @@
   </table></div></div>
 </div>
 
+<script src="shared-supply.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 const app=initializeApp({apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"});
 const db=getFirestore(app);
+const fnsClock={doc,getDoc,onSnapshot,setDoc,runTransaction};
+
+// Suscribir reloj y reflejar estado en el botón
+window.subscribeClock(db, fnsClock, (clk)=>{
+  const btn=document.getElementById("pauseBtn");
+  const st=document.getElementById("pauseStatus");
+  if(clk.paused){
+    btn.className="pause-btn is-paused"; btn.textContent="▶ Reanudar simulación";
+    st.className="pause-status paused"; st.textContent="⏸ En pausa";
+  }else{
+    btn.className="pause-btn is-run"; btn.textContent="⏸ Pausar simulación";
+    st.className="pause-status run"; st.textContent="● En marcha";
+  }
+});
+window.togglePausa=async function(){
+  if(window.isPaused()) await window.resumeSim(db, fnsClock);
+  else await window.pauseSim(db, fnsClock);
+};
 
 const COMPANIES={
   UNILEVER_MEX:{label:"UNILEVER MEX",limit:null,initial:{Rojo:72,Azul:128,Rosado:80,Blanco:80,Amarillo:96}},

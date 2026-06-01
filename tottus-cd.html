@@ -12,6 +12,7 @@
   </style>
 </head>
 <body>
+<div class="pause-overlay"><div class="pause-card"><div class="pico">⏸</div><div class="ptit">Simulación en pausa</div><div class="psub">El coordinador ha pausado. Los temporizadores están congelados.</div></div></div>
 
 <div class="agent-header">
   <div class="agent-header-inner">
@@ -32,31 +33,38 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="info-box-supply">Recibes OTRAN de TOTTUS TIENDA → creas una OTRA y despachas (albarán de salida). Si no tienes stock, compras a UNILEVER PERÚ (OCOM → albarán de entrada).</div>
+  <div class="guide-box">
+    <div class="guide-role">Eres el <b>centro de distribución</b> de Tottus. Abasteces a las tiendas Tottus y te repones comprando a Unilever Perú.</div>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="gs-num">1</span><span>Cuando una tienda te pide una <b>transferencia</b> (panel derecho), pulsa <b>"Atender pedido"</b>. Tendrás 3 minutos.</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Enviar a la tienda"</b> para despachar (descuenta tu stock). Puedes enviar por partes.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b>Si te falta stock:</b> usa <b>"Comprar a Unilever Perú"</b> y luego <b>"Registrar lo recibido"</b> cuando llegue.</span></div>
+    </div>
+  </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOtra.open()">+ Orden de transferencia (OTRA)</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">+ Albarán de salida</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">+ Orden de compra (UP)</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">+ Albarán de entrada</button>
+    <button class="btn-action primary" onclick="window.__supply_mOtra.open()">+ Atender pedido (manual)</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar a la tienda</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Comprar a Unilever Perú</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('otra',this)">Transferencias (OTRA)</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Compras (OCOM)</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('otra',this)">Pedidos de tiendas</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Mis compras</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-otra"><div id="otraContainer"></div></div>
   <div class="tab-content-supply" id="tab-ocom"><div id="ocomContainer"></div></div>
   <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden</th><th>Items</th><th>Entrega</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 </div></div>
 
 <div class="right-panel">
-  <p class="section-title-sm">OTRAN entrantes de TOTTUS TIENDA</p>
+  <p class="section-title-sm">Pedidos de las tiendas</p>
   <div id="otranEntrantes" style="margin-bottom:1rem;"></div>
   <div style="border-top:1px solid #e5e4de;margin:8px 0;"></div>
   <p class="section-title-sm">Llegadas de CETLOG</p>
@@ -66,14 +74,14 @@
 <!-- Modal OTRA -->
 <div class="modal-overlay" id="mOtra">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de transferencia (respuesta)</div><div class="modal-sub">TCD-OTRA · timer 3 min · despacha a TOTTUS TIENDA</div></div>
+    <div class="modal-header"><div><div class="modal-title">Atender pedido de tienda</div><div class="modal-sub">Tendrás 3 minutos para enviar a la tienda</div></div>
       <button class="modal-close" onclick="window.__supply_mOtra.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de destino</label>
         <input type="text" id="trDest" class="modal-input" value="TOTTUS TIENDA" readonly/></div>
       <div class="modal-field"><label class="modal-label">Tipo de venta</label>
         <select id="trTipo" class="modal-select"><option value="directa">Directa</option><option value="preparacion">Con preparación</option></select></div>
-      <div class="modal-field"><label class="modal-label">Referencia (OTRAN entrante)</label>
+      <div class="modal-field"><label class="modal-label">Referencia (pedido de la tienda)</label>
         <input type="text" id="trRef" class="modal-input" placeholder="Ej: TTT-OTRAN-001"/></div>
       <div class="modal-field"><label class="modal-label">Artículos</label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
@@ -83,7 +91,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOtra.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOTRA()">Crear OTRA →</button>
+      <button class="btn-m primary" onclick="window.crearOTRA()">Atender pedido →</button>
     </div>
   </div>
 </div>
@@ -91,10 +99,10 @@
 <!-- Modal DESP -->
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de salida</div><div class="modal-sub">TCD-DESP · descuenta stock · contra una OTRA</div></div>
+    <div class="modal-header"><div><div class="modal-title">Enviar a la tienda</div><div class="modal-sub">Indica cuánto envías · descuenta tu stock</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de OTRA</label>
+      <div class="modal-field"><label class="modal-label">Código del pedido a atender</label>
         <input type="text" id="dpCodigo" class="modal-input" placeholder="Ej: TCD-OTRA-001"/>
         <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOTRA()">Cargar orden →</button></div>
       <div class="modal-preview" id="dpPreview" style="display:none"></div>
@@ -114,7 +122,7 @@
 <!-- Modal OCOM -->
 <div class="modal-overlay" id="mOcom">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Orden de compra — UNILEVER PERÚ</div><div class="modal-sub">TCD-OCOM · timer 3 min</div></div>
+    <div class="modal-header"><div><div class="modal-title">Comprar a Unilever Perú</div><div class="modal-sub">Tu solicitud a Unilever Perú</div></div>
       <button class="modal-close" onclick="window.__supply_mOcom.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Proveedor</label>
@@ -127,7 +135,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCOM()">Crear OCOM →</button>
+      <button class="btn-m primary" onclick="window.crearOCOM()">Comprar →</button>
     </div>
   </div>
 </div>
@@ -135,10 +143,10 @@
 <!-- Modal RECEP -->
 <div class="modal-overlay" id="mRecep">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de entrada</div><div class="modal-sub">TCD-RECEP · suma stock · contra una OCOM</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo recibido de tu compra</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de OCOM</label>
+      <div class="modal-field"><label class="modal-label">Código de tu compra</label>
         <input type="text" id="rpCodigo" class="modal-input" placeholder="Ej: TCD-OCOM-001"/>
         <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOCOM()">Cargar orden →</button></div>
       <div class="modal-preview" id="rpPreview" style="display:none"></div>
@@ -163,7 +171,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
 const ID="TOTTUS_CD", ACCENT="#0F6E56", LIMIT=184;
 const INIT={Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24};
 
@@ -181,6 +189,9 @@ window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpP
   if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
   window.renderHeader(stock,LIMIT,ACCENT);
 })();
+// Reloj global con pausa
+window.subscribeClock(db, fns, ()=>{});
+
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOTRA(); renderOCOM();
@@ -229,7 +240,7 @@ function renderOCOM(){
 }
 function renderAlb(){
   const b=document.getElementById("albBody");
-  if(!albaranes.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  if(!albaranes.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
   b.innerHTML=albaranes.map(a=>{
     const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
@@ -239,14 +250,14 @@ function renderAlb(){
 function renderOtranEntr(){
   const c=document.getElementById("otranEntrantes");
   const a=otranEntr.filter(o=>["pendiente","parcial","atrasado"].includes(o.estado));
-  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin OTRAN entrantes.</p>'; return; }
+  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin pedidos de tiendas.</p>'; return; }
   c.innerHTML=a.map(o=>{
     const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
     const itemsJson=encodeURIComponent(JSON.stringify(o.items));
     return `<div class="notif-card" style="background:#fff;border-color:#5DCAA5;border-left-color:#0F6E56">
       <div class="notif-title" style="color:#0A4D3C">📥 ${o.codigo}</div>
       <div class="notif-detail">${items}<br>De: TOTTUS TIENDA</div>
-      <button class="notif-btn" style="background:#E1F5EE;color:#0A4D3C;border-color:#5DCAA5" onclick="window.responderOTRA('${o.codigo}','${itemsJson}')">+ Crear OTRA respuesta</button>
+      <button class="notif-btn" style="background:#E1F5EE;color:#0A4D3C;border-color:#5DCAA5" onclick="window.responderOTRA('${o.codigo}','${itemsJson}')">→ Atender pedido</button>
     </div>`;
   }).join("");
 }
@@ -270,7 +281,7 @@ window.crearOTRA=async function(){
     almacenDestino:"TOTTUS TIENDA", tipo:"transferencia", tipoVenta,
     items, estado:"pendiente", responsable:ID,
     referencia:ref||null,
-    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   mOtra.close();
   window.showToast("📋","OTRA creada",`${codigo} → TOTTUS TIENDA`);
@@ -333,7 +344,7 @@ window.crearOCOM=async function(){
     codigo, prefix:"TCD-OCOM", emisor:ID, destino:"UNILEVER_PERU", destinoFinal:ID,
     proveedor:"UNILEVER PERÚ", tipo:"compra",
     items, estado:"pendiente", responsable:"UNILEVER_PERU",
-    timestamp:serverTimestamp(), deadlineMs:Date.now()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_PERU",notas:`${codigo} a UP`,timestamp:serverTimestamp()});
   mOcom.close();

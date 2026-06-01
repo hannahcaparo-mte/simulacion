@@ -12,6 +12,7 @@
   </style>
 </head>
 <body>
+<div class="pause-overlay"><div class="pause-card"><div class="pico">⏸</div><div class="ptit">Simulación en pausa</div><div class="psub">El coordinador ha pausado. Los temporizadores están congelados.</div></div></div>
 
 <div class="agent-header">
   <div class="agent-header-inner">
@@ -32,38 +33,45 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="info-box-supply">Recibes OPED de UNILEVER PERÚ y despachas a TOTTUS CD / YICHANG. Recibes inventario de UNILEVER MEX vía notificaciones.</div>
+  <div class="guide-box">
+    <div class="guide-role">Eres el <b>almacén de Unilever Perú</b>. Guardas el stock y lo despachas cuando Unilever Perú te lo pide. También recibes la mercadería que envía la fábrica (Unilever México).</div>
+    <div class="guide-steps">
+      <div class="guide-step"><span class="gs-num">1</span><span>Cuando Unilever Perú te envía un <b>pedido</b>, aparece en la pestaña principal con un <b>cronómetro de 3 minutos</b>.</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Enviar productos"</b> para despachar a Tottus CD o Yichang (puedes enviar por partes). Esto descuenta tu stock.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span>Cuando llega mercadería de la fábrica (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla a tu stock.</span></div>
+    </div>
+  </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="abrirDESP()">+ Albarán de salida (despacho)</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">+ Albarán de entrada (recepción)</button>
+    <button class="btn-action primary" onclick="abrirDESP()">📦 Enviar productos</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oped',this)">OPED entrantes de UP</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Albaranes registrados</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oped',this)">Pedidos por despachar</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oped"><div id="opedContainer"></div></div>
   <div class="tab-content-supply" id="tab-alb"><div class="tbl-wrap-s"><table class="tbl-supply">
     <thead><tr><th>Código</th><th>Hora</th><th>Tipo</th><th>Orden</th><th>Items</th><th>Entrega</th></tr></thead>
-    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr></tbody>
+    <tbody id="albBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr></tbody>
   </table></div></div>
 </div></div>
 
 <div class="right-panel">
   <p class="section-title-sm">Notificaciones de UNILEVER MEX</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra cada llegada vía albarán de entrada.</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra lo que llega de la fábrica.</p>
   <div id="notifContainer"></div>
 </div>
 
 <!-- Modal DESP (contra OPED de UP) -->
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de salida</div><div class="modal-sub">CL-DESP · despacha contra OPED de UP. Descuenta stock.</div></div>
+    <div class="modal-header"><div><div class="modal-title">Enviar productos</div><div class="modal-sub">Despacha el pedido de Unilever Perú · descuenta tu stock</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de OPED de UP</label>
+      <div class="modal-field"><label class="modal-label">Código del pedido de Unilever Perú</label>
         <input type="text" id="dpCodigo" class="modal-input" placeholder="Ej: UP-OPED-001"/>
         <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOPED()">Cargar orden →</button></div>
       <div class="modal-preview" id="dpPreview" style="display:none"></div>
@@ -83,10 +91,10 @@
 <!-- Modal RECEP (entrada de UM contra UP-OCOM) -->
 <div class="modal-overlay" id="mRecep">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Albarán de entrada</div><div class="modal-sub">CL-RECEP · registra recepción de UM. Aumenta stock.</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo que envió la fábrica</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de OCOM de UP a UM (referencia)</label>
+      <div class="modal-field"><label class="modal-label">Código de la compra (referencia, opcional)</label>
         <input type="text" id="rpRef" class="modal-input" placeholder="Ej: UP-OCOM-001"/></div>
       <div class="modal-field"><label class="modal-label">Items recibidos</label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
@@ -109,7 +117,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
 const ID="CETLOG", ACCENT="#534AB7", LIMIT=184;
 const INIT={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
 
@@ -125,6 +133,9 @@ window.abrirRECEP=()=>mRecep.open({rpRef:""});
   if(!s.exists()) await setDoc(doc(db,"stocks",ID),INIT); else stock=s.data();
   window.renderHeader(stock,LIMIT,ACCENT);
 })();
+// Reloj global con pausa
+window.subscribeClock(db, fns, ()=>{});
+
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 
 // OPED entrantes (UP-OPED donde destino=CETLOG) — yo soy responsable
@@ -161,7 +172,7 @@ function renderOPED(){
 
 function renderAlb(){
   const b=document.getElementById("albBody");
-  if(!albaranesMios.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin albaranes.</td></tr>'; return; }
+  if(!albaranesMios.length){ b.innerHTML='<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#b4b2a9;">Sin movimientos.</td></tr>'; return; }
   b.innerHTML=albaranesMios.map(a=>{
     const t=a.timestamp?new Date(a.timestamp.toDate()).toLocaleTimeString("es-PE"):"—";
     const items=(a.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
