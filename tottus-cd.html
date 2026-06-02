@@ -42,8 +42,18 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOtra.open()">+ Atender pedido (manual)</button>
+    <button class="btn-action primary" onclick="window.abrirOTRA()">+ Atender pedido (manual)</button>
     <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar a la tienda</button>
     <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Comprar a Unilever Perú</button>
     <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
@@ -79,11 +89,11 @@
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de destino</label>
         <input type="text" id="trDest" class="modal-input" value="TOTTUS TIENDA" readonly/></div>
-      <div class="modal-field"><label class="modal-label">Tipo de venta</label>
-        <select id="trTipo" class="modal-select"><option value="directa">Directa</option><option value="preparacion">Con preparación</option></select></div>
-      <div class="modal-field"><label class="modal-label">Referencia (pedido de la tienda)</label>
-        <input type="text" id="trRef" class="modal-input" placeholder="Ej: TTT-OTRAN-001"/></div>
-      <div class="modal-field"><label class="modal-label">Artículos</label>
+      <div class="modal-field"><label class="modal-label">Código del pedido (pégalo aquí)</label>
+        <input type="text" id="trRef" class="modal-input" placeholder="Ej: TTT-OTRAN-001"/>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefOtra()">Ver qué pidieron →</button></div>
+      <div class="modal-preview" id="trPreview" style="display:none"></div>
+      <div class="modal-field"><label class="modal-label">¿Cuánto vas a enviar? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="trRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mOtra.addRow()">+ Agregar producto</button></div>
@@ -181,6 +191,7 @@ const mOtra=window.createSupplyModal("mOtra","trRows","trAlert");
 const mDesp=window.createSupplyModal("mDesp","dpRows","dpAlert");
 const mOcom=window.createSupplyModal("mOcom","ocRows","ocAlert");
 const mRecep=window.createSupplyModal("mRecep","rpRows","rpAlert");
+window.abrirOTRA=()=>{ mOtra.open({trRef:""}); mOtra.setRowsEmpty(null); const p=document.getElementById("trPreview"); if(p) p.style.display="none"; };
 window.abrirDESP=()=>{ mDesp.open({dpCodigo:""}); document.getElementById("dpPreview").style.display="none"; };
 window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpPreview").style.display="none"; };
 
@@ -227,6 +238,10 @@ function albSalida(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo===
 function albEntrada(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==="entrada"); }
 
 function renderOTRA(){
+  window.renderSummary("sumContent",[
+    {label:"Pedidos de tiendas", ordenes:ordenes.filter(o=>o.prefix==="TCD-OTRA"), completedKey:"enviado", albaranesFn:o=>albSalida(o.codigo)},
+    {label:"Compras a Unilever Perú", ordenes:ordenes.filter(o=>o.prefix==="TCD-OCOM"), completedKey:"recibido", albaranesFn:o=>albEntrada(o.codigo)},
+  ]);
   const c=document.getElementById("otraContainer");
   const a=window.__sortOrders(ordenes.filter(o=>o.prefix==="TCD-OTRA"));
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albSalida(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
@@ -248,45 +263,36 @@ function renderAlb(){
   }).join("");
 }
 function renderOtranEntr(){
-  const c=document.getElementById("otranEntrantes");
-  const a=window.__sortOrders ? window.__sortOrders(otranEntr) : otranEntr;
-  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin pedidos de tiendas.</p>'; return; }
-  c.innerHTML=a.map(o=>{
-    const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
-    const itemsJson=encodeURIComponent(JSON.stringify(o.items));
-    // ¿Ya creé una OTRA que atiende este pedido?
-    const atendido=ordenes.find(v=>v.prefix==="TCD-OTRA" && v.referencia===o.codigo);
-    if(atendido){
-      return `<div class="notif-card registrada" style="border-left-color:#0F6E56">
-        <div class="notif-title" style="color:#0A4D3C">✓ ${o.codigo} → atendido</div>
-        <div class="notif-detail">${items}<br>De: TOTTUS TIENDA<br>Tu envío: <b style="font-family:Menlo,monospace">${atendido.codigo}</b></div>
-      </div>`;
-    }
-    return `<div class="notif-card" style="background:#fff;border-color:#5DCAA5;border-left-color:#0F6E56">
-      <div class="notif-title" style="color:#0A4D3C">📥 ${o.codigo}</div>
-      <div class="notif-detail">${items}<br>De: TOTTUS TIENDA<br><i>Atiéndelo para poder enviar.</i></div>
-      <button class="notif-btn" style="background:#E1F5EE;color:#0A4D3C;border-color:#5DCAA5" onclick="window.responderOTRA('${o.codigo}','${itemsJson}')">→ Atender pedido</button>
-    </div>`;
-  }).join("");
+  window.renderIncomingPanel({
+    containerId:"otranEntrantes", ordenes:otranEntr, accent:"#0F6E56",
+    onMarcar:"marcarRegistradaOC", origenLabel:()=>"TOTTUS TIENDA"
+  });
 }
+window.marcarRegistradaOC=async function(id){
+  await updateDoc(doc(db,"ordenes",id),{marcadaRegistrada:true});
+};
 
 window.marcarRegistrada=async function(id){ await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"}); };
 
-window.responderOTRA=function(codigoOTRAN, itemsJson){
-  const items=JSON.parse(decodeURIComponent(itemsJson));
-  mOtra.open({trRef:codigoOTRAN});
-  mOtra.setRows(items);
+window.cargarRefOtra=function(){
+  const codigo=document.getElementById("trRef").value.trim();
+  const prev=document.getElementById("trPreview");
+  if(!codigo){ prev.style.display="none"; mOtra.alert("Pega un código de pedido.",true); return; }
+  const ped=otranEntr.find(o=>o.codigo===codigo);
+  if(!ped){ prev.style.display="none"; mOtra.alert(`No encuentro el pedido ${codigo}.`,true); return; }
+  prev.style.display="block";
+  prev.innerHTML=`<b>${codigo}</b> (de TOTTUS TIENDA) pidió: ${(ped.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ")}`;
+  mOtra.setRowsEmpty(ped.items);
 };
 
 window.crearOTRA=async function(){
   const items=mOtra.getItems();
-  const tipoVenta=document.getElementById("trTipo").value;
   const ref=document.getElementById("trRef").value.trim();
   if(!items.length){ mOtra.alert("Agrega al menos un producto.",true); return; }
   const codigo=await window.getNextCode(db,fns,"TCD-OTRA");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"TCD-OTRA", emisor:ID, destino:"TOTTUS_TIENDA", destinoFinal:"TOTTUS_TIENDA",
-    almacenDestino:"TOTTUS TIENDA", tipo:"transferencia", tipoVenta,
+    almacenDestino:"TOTTUS TIENDA", tipo:"transferencia",
     items, estado:"pendiente", responsable:ID,
     referencia:ref||null,
     timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
@@ -304,7 +310,7 @@ window.cargarOTRA=async function(){
   const rem=window.itemsRemaining(o,albSalida(codigo));
   document.getElementById("dpPreview").style.display="block";
   document.getElementById("dpPreview").innerHTML=`<b>${codigo}</b> → TOTTUS TIENDA<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mDesp.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mDesp.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearDESP=async function(){
@@ -368,7 +374,7 @@ window.cargarOCOM=async function(){
   const rem=window.itemsRemaining(o,albEntrada(codigo));
   document.getElementById("rpPreview").style.display="block";
   document.getElementById("rpPreview").innerHTML=`<b>${codigo}</b> · de UNILEVER PERÚ (CETLOG)<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mRecep.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mRecep.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearRECEP=async function(){

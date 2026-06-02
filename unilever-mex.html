@@ -42,8 +42,18 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Registrar venta manual</button>
+    <button class="btn-action primary" onclick="window.abrirOVEN()">+ Registrar venta manual</button>
     <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar productos</button>
   </div>
 
@@ -74,9 +84,11 @@
         <input type="text" id="ovAlmacen" class="modal-input" value="UNILEVER MEX" readonly/></div>
       <div class="modal-field"><label class="modal-label">Cliente</label>
         <select id="ovCliente" class="modal-select"><option value="UNILEVER_PERU">UNILEVER PERÚ (envío a CETLOG)</option></select></div>
-      <div class="modal-field"><label class="modal-label">Referencia (código OC entrante, opcional)</label>
-        <input type="text" id="ovRef" class="modal-input" placeholder="Ej: UP-OCOM-003"/></div>
-      <div class="modal-field"><label class="modal-label">Artículos</label>
+      <div class="modal-field"><label class="modal-label">Código del pedido (pégalo aquí)</label>
+        <input type="text" id="ovRef" class="modal-input" placeholder="Ej: UP-OCOM-003"/>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefVenta()">Ver qué pidieron →</button></div>
+      <div class="modal-preview" id="ovPreview" style="display:none"></div>
+      <div class="modal-field"><label class="modal-label">¿Cuánto vas a vender? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="ovRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mOven.addRow()">+ Agregar producto</button></div>
@@ -127,6 +139,7 @@ let stock={...INIT}, ordenes=[], albaranes=[], ocsEntrantes=[];
 
 const mOven=window.createSupplyModal("mOven","ovRows","ovAlert");
 const mDesp=window.createSupplyModal("mDesp","dpRows","dpAlert");
+window.abrirOVEN=()=>{ mOven.open({ovRef:""}); mOven.setRowsEmpty(null); const p=document.getElementById("ovPreview"); if(p) p.style.display="none"; };
 window.abrirDESP=()=>{ mDesp.open({dpCodigo:""}); document.getElementById("dpPreview").style.display="none"; };
 
 (async()=>{
@@ -139,7 +152,7 @@ window.subscribeClock(db, fns, ()=>{});
 
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,null,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
-  ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN();
+  ordenes=[]; s.forEach(d=>ordenes.push({id:d.id,...d.data()})); renderOVEN(); renderOCs();
 });
 onSnapshot(query(collection(db,"albaranes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
   albaranes=[]; s.forEach(d=>albaranes.push({id:d.id,...d.data()})); renderAlb(); renderOVEN();
@@ -158,6 +171,9 @@ window.startCompletionWatcher(db,fns,()=>ordenes, c=>albaranes.filter(a=>a.codig
 function albForOrden(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==="salida"); }
 
 function renderOVEN(){
+  window.renderSummary("sumContent",[
+    {label:"Ventas (pedidos a atender)", ordenes:ordenes.filter(o=>o.prefix==="UM-OVEN"), completedKey:"enviado", albaranesFn:o=>albForOrden(o.codigo)},
+  ]);
   const c=document.getElementById("ovenContainer");
   const a=window.__sortOrders(ordenes);
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albForOrden(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
@@ -176,24 +192,25 @@ function renderAlb(){
 
 
 function renderOCs(){
-  const c=document.getElementById("ocsEntrantes");
-  const a=ocsEntrantes.filter(o=>["pendiente","parcial","atrasado"].includes(o.estado));
-  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin OCs entrantes.</p>'; return; }
-  c.innerHTML=a.map(o=>{
-    const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
-    const itemsJson=encodeURIComponent(JSON.stringify(o.items));
-    return `<div class="notif-card" style="background:#fff;border-color:#B5D4F4;border-left-color:#185FA5">
-      <div class="notif-title" style="color:#0C447C">📥 ${o.codigo}</div>
-      <div class="notif-detail">${items}<br>De: ${window.AGENT_LABEL[o.emisor]}</div>
-      <button class="notif-btn" onclick="window.responderOVEN('${o.codigo}','${itemsJson}')">✓ Registrar venta</button>
-    </div>`;
-  }).join("");
+  window.renderIncomingPanel({
+    containerId:"ocsEntrantes", ordenes:ocsEntrantes, accent:"#185FA5",
+    onMarcar:"marcarRegistradaOC"
+  });
 }
+window.marcarRegistradaOC=async function(id){
+  await updateDoc(doc(db,"ordenes",id),{marcadaRegistrada:true});
+};
 
-window.responderOVEN=function(codigoOC, itemsJson){
-  const items=JSON.parse(decodeURIComponent(itemsJson));
-  mOven.open({ovRef:codigoOC});
-  mOven.setRows(items);
+window.cargarRefVenta=function(){
+  const codigo=document.getElementById("ovRef").value.trim();
+  const prev=document.getElementById("ovPreview");
+  if(!codigo){ prev.style.display="none"; mOven.alert("Pega un código de pedido.",true); return; }
+  const oc=ocsEntrantes.find(o=>o.codigo===codigo);
+  if(!oc){ prev.style.display="none"; mOven.alert(`No encuentro el pedido ${codigo}.`,true); return; }
+  prev.style.display="block";
+  prev.innerHTML=`<b>${codigo}</b> pidió: ${(oc.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ")}`;
+  // Carga los productos como referencia pero con cantidades vacías
+  mOven.setRowsEmpty(oc.items);
 };
 
 window.crearOVEN=async function(){
@@ -229,7 +246,7 @@ window.cargarOVEN=async function(){
   const rem=window.itemsRemaining(o,albs);
   document.getElementById("dpPreview").style.display="block";
   document.getElementById("dpPreview").innerHTML=`<b>${codigo}</b> · ${o.cliente||window.AGENT_LABEL[o.destino]}<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mDesp.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mDesp.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearDESP=async function(){

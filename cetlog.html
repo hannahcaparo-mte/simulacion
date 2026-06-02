@@ -42,6 +42,16 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
     <button class="btn-action primary" onclick="abrirDESP()">📦 Enviar productos</button>
     <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
@@ -94,9 +104,11 @@
     <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo que envió la fábrica</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de la compra (referencia, opcional)</label>
-        <input type="text" id="rpRef" class="modal-input" placeholder="Ej: UP-OCOM-001"/></div>
-      <div class="modal-field"><label class="modal-label">Items recibidos</label>
+      <div class="modal-field"><label class="modal-label">Código de la compra (pégalo aquí)</label>
+        <input type="text" id="rpRef" class="modal-input" placeholder="Ej: UP-OCOM-001"/>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefRecep()">Ver qué llegó →</button></div>
+      <div class="modal-preview" id="rpPreview" style="display:none"></div>
+      <div class="modal-field"><label class="modal-label">¿Cuánto recibiste? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="rpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mRecep.addRow()">+ Agregar producto</button></div>
@@ -126,7 +138,18 @@ let stock={...INIT}, opedEntrantes=[], albaranesMios=[], notifs=[];
 const mDesp=window.createSupplyModal("mDesp","dpRows","dpAlert");
 const mRecep=window.createSupplyModal("mRecep","rpRows","rpAlert");
 window.abrirDESP=()=>{ mDesp.open({dpCodigo:""}); document.getElementById("dpPreview").style.display="none"; };
-window.abrirRECEP=()=>mRecep.open({rpRef:""});
+window.abrirRECEP=()=>{ mRecep.open({rpRef:""}); mRecep.setRowsEmpty(null); const p=document.getElementById("rpPreview"); if(p) p.style.display="none"; };
+window.cargarRefRecep=function(){
+  const codigo=document.getElementById("rpRef").value.trim();
+  const prev=document.getElementById("rpPreview");
+  if(!codigo){ prev.style.display="none"; mRecep.alert("Pega un código.",true); return; }
+  // Buscar entre las llegadas la que referencia este código
+  const lleg=notifs.find(n=>n.tipoNotif==="llegada" && n.codigoOrden===codigo);
+  if(!lleg){ prev.style.display="none"; mRecep.alert(`No encuentro una llegada para ${codigo}.`,true); return; }
+  prev.style.display="block";
+  prev.innerHTML=`Llegó para <b>${codigo}</b>: ${(lleg.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ")}`;
+  mRecep.setRowsEmpty(lleg.items);
+};
 
 (async()=>{
   const s=await getDoc(doc(db,"stocks",ID));
@@ -149,7 +172,9 @@ onSnapshot(query(collection(db,"albaranes"),where("emisor","==",ID),orderBy("tim
 });
 onSnapshot(query(collection(db,"notificaciones"),where("destinatario","==",ID),orderBy("timestamp","desc")),s=>{
   notifs=[]; s.forEach(d=>notifs.push({id:d.id,...d.data()}));
-  window.renderNotifPanel("notifContainer",notifs,"marcarRegistrada");
+  // Solo llegadas de inventario físico (de la fábrica). Los pedidos de UP llegan como órdenes, no aquí.
+  const llegadas=notifs.filter(n=>n.tipoNotif==="llegada");
+  window.renderNotifPanel("notifContainer",llegadas,"marcarRegistrada");
 });
 onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==",ID),orderBy("timestamp","desc")),s=>{
   const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
@@ -164,6 +189,9 @@ window.startCompletionWatcher(db,fns,()=>opedEntrantes, c=>albaranesMios.filter(
 function albForOrden(c){ return albaranesMios.filter(a=>a.codigoOrden===c && a.tipo==="salida"); }
 
 function renderOPED(){
+  window.renderSummary("sumContent",[
+    {label:"Pedidos por despachar", ordenes:opedEntrantes, completedKey:"enviado", albaranesFn:o=>albForOrden(o.codigo)},
+  ]);
   const c=document.getElementById("opedContainer");
   const a=window.__sortOrders(opedEntrantes);
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showTimer:true,accentColor:ACCENT,albaranes:albForOrden(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
@@ -200,7 +228,7 @@ window.cargarOPED=async function(){
   const dest=o.destinoFinal||"—";
   document.getElementById("dpPreview").style.display="block";
   document.getElementById("dpPreview").innerHTML=`<b>${codigo}</b> → ${window.AGENT_LABEL[dest]||dest} (ref ${o.referencia||"—"})<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mDesp.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mDesp.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearDESP=async function(){

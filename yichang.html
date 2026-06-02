@@ -42,6 +42,16 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
     <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Vender a Don Tito</button>
     <button class="btn-action secondary" onclick="abrirDESP()">📦 Entregar a Don Tito</button>
@@ -79,8 +89,6 @@
         <input type="text" id="ovAlmacen" class="modal-input" value="YICHANG" readonly/></div>
       <div class="modal-field"><label class="modal-label">Cliente</label>
         <input type="text" id="ovCliente" class="modal-input" value="Don Tito"/></div>
-      <div class="modal-field"><label class="modal-label">Tipo de venta</label>
-        <select id="ovTipo" class="modal-select"><option value="directa">Directa (despacho inmediato)</option><option value="preparacion">Con preparación (pedir a UP)</option></select></div>
       <div class="modal-field"><label class="modal-label">Artículos</label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="ovRows"></div>
@@ -218,7 +226,14 @@ window.startCompletionWatcher(db,fns,()=>ordenes.filter(o=>o.prefix==="YI-OCOM")
 function albSalida(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==="salida"); }
 function albEntrada(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==="entrada"); }
 
+function renderSum(){
+  window.renderSummary("sumContent",[
+    {label:"Ventas a Don Tito", ordenes:ordenes.filter(o=>o.prefix==="YI-OVEN"), completedKey:"enviado", albaranesFn:o=>albSalida(o.codigo)},
+    {label:"Compras a Unilever Perú", ordenes:ordenes.filter(o=>o.prefix==="YI-OCOM"), completedKey:"recibido", albaranesFn:o=>albEntrada(o.codigo)},
+  ]);
+}
 function renderOVEN(){
+  renderSum();
   const c=document.getElementById("ovenContainer");
   const a=window.__sortOrders(ordenes.filter(o=>o.prefix==="YI-OVEN"));
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albSalida(o.codigo),completedKey:"enviado",viewerId:ID})).join("")
@@ -246,16 +261,15 @@ window.crearOVEN=async function(){
   const items=mOven.getItems();
   if(!items.length){ mOven.alert("Agrega al menos un producto.",true); return; }
   const cliente=document.getElementById("ovCliente").value.trim()||"Don Tito";
-  const tipoVenta=document.getElementById("ovTipo").value;
   const codigo=await window.getNextCode(db,fns,"YI-OVEN");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"YI-OVEN", emisor:ID, destino:"DON_TITO",
-    almacenOrigen:"YICHANG", cliente, tipo:"venta", tipoVenta,
+    almacenOrigen:"YICHANG", cliente, tipo:"venta",
     items, estado:"pendiente", responsable:ID,
     timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   mOven.close();
-  window.showToast("📋","Venta creada",`${codigo} (${tipoVenta})`);
+  window.showToast("📋","Venta creada",`${codigo}`);
 };
 
 window.cargarOVEN=async function(){
@@ -267,7 +281,7 @@ window.cargarOVEN=async function(){
   const rem=window.itemsRemaining(o,albSalida(codigo));
   document.getElementById("dpPreview").style.display="block";
   document.getElementById("dpPreview").innerHTML=`<b>${codigo}</b> · ${o.cliente}<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mDesp.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mDesp.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearDESP=async function(){
@@ -325,7 +339,7 @@ window.cargarOCOM=async function(){
   const rem=window.itemsRemaining(o,albEntrada(codigo));
   document.getElementById("rpPreview").style.display="block";
   document.getElementById("rpPreview").innerHTML=`<b>${codigo}</b> · de UNILEVER PERÚ<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mRecep.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mRecep.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearRECEP=async function(){

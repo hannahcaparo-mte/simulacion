@@ -399,3 +399,24 @@ body.sim-paused .pause-overlay { display: flex; }
   background: var(--c-accent); color: #fff; font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; margin-top: 1px;
 }
+
+/* ── Resumen plegable por agente ── */
+.summary-box { background:#fff; border:1px solid #e5e4de; border-radius:12px; margin-bottom:1rem; overflow:hidden; }
+.summary-head {
+  display:flex; align-items:center; gap:10px; padding:11px 16px; cursor:pointer;
+  user-select:none; font-size:13px; font-weight:600; color:#1a1a18;
+}
+.summary-head:hover { background:#fafaf8; }
+.summary-caret { transition:transform .2s; color:#888780; font-size:12px; }
+.summary-box.open .summary-caret { transform:rotate(90deg); }
+.summary-head .sh-spacer { margin-left:auto; }
+.summary-chip { font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; }
+.summary-chip.act { background:#FBEFD8; color:#8A5408; }
+.summary-chip.lat { background:#FBE0E0; color:#A32D2D; }
+.summary-chip.don { background:#DEF1E6; color:#1B7A47; }
+.summary-body { display:none; padding:0 16px 14px; }
+.summary-box.open .summary-body { display:block; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+.summary-stat { background:#f9f8f5; border-radius:9px; padding:10px 12px; }
+.summary-stat .ss-num { font-size:22px; font-weight:700; line-height:1; }
+.summary-stat .ss-lbl { font-size:11px; color:#888780; margin-top:3px; }

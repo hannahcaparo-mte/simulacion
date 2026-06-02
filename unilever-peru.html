@@ -41,6 +41,16 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
     <button class="btn-action primary" onclick="abrirOPED()">+ Pedir a CETLOG (manual)</button>
     <button class="btn-action secondary" onclick="abrirOCOM()">🏭 Comprar a la fábrica</button>
@@ -76,9 +86,11 @@
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Cliente (destino final)</label>
         <select id="opDest" class="modal-select"><option value="TOTTUS_CD">TOTTUS CD</option><option value="YICHANG">YICHANG</option></select></div>
-      <div class="modal-field"><label class="modal-label">Referencia (código OC entrante)</label>
-        <input type="text" id="opRef" class="modal-input" placeholder="Ej: TCD-OCOM-002 o YI-OCOM-001"/></div>
-      <div class="modal-field"><label class="modal-label">Artículos</label>
+      <div class="modal-field"><label class="modal-label">Código del pedido (pégalo aquí)</label>
+        <input type="text" id="opRef" class="modal-input" placeholder="Ej: TCD-OCOM-002 o YI-OCOM-001"/>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefOped()">Ver qué pidieron →</button></div>
+      <div class="modal-preview" id="opPreview" style="display:none"></div>
+      <div class="modal-field"><label class="modal-label">¿Cuánto vas a pedir a CETLOG? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="opRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mOped.addRow()">+ Agregar producto</button></div>
@@ -124,6 +136,7 @@ const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serv
 const ID="UNILEVER_PERU", ACCENT="#3B6D11", CETLOG_LIMIT=184;
 
 let cetlogStock={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
+let todosAlbaranes=[];
 let ocsEntrantes=[];   // OCOM de YI/TCD donde destino=UP
 let misOped=[];        // UP-OPED (emisor=UP, destino=CETLOG)
 let misOcom=[];        // UP-OCOM (emisor=UP, destino=MEX)
@@ -131,7 +144,7 @@ let movimientosCetlog=[];
 
 const mOped=window.createSupplyModal("mOped","opRows","opAlert");
 const mOcom=window.createSupplyModal("mOcom","ocRows","ocAlert");
-window.abrirOPED=()=>mOped.open({opRef:""});
+window.abrirOPED=()=>{ mOped.open({opRef:""}); mOped.setRowsEmpty(null); const p=document.getElementById("opPreview"); if(p) p.style.display="none"; };
 window.abrirOCOM=()=>mOcom.open();
 
 // Stock de CETLOG (solo lectura)
@@ -143,7 +156,11 @@ window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT);
 
 // OCs entrantes: ordenes donde destino=UP (las OCOM de YI y TCD)
 onSnapshot(query(collection(db,"ordenes"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
-  ocsEntrantes=[]; s.forEach(d=>ocsEntrantes.push({id:d.id,...d.data()}));
+  ocsEntrantes=[]; s.forEach(d=>{
+    const o={id:d.id,...d.data()};
+    // Solo solicitudes de compra de Yichang o Tottus CD (no las propias ni otras)
+    if(o.prefix==="YI-OCOM" || o.prefix==="TCD-OCOM") ocsEntrantes.push(o);
+  });
   renderOCs(); renderOCsPanel();
 });
 
@@ -156,6 +173,12 @@ onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("times
 });
 
 // Movimientos de CETLOG (feed)
+// Albaranes (para mostrar el progreso real de las órdenes)
+onSnapshot(query(collection(db,"albaranes"),orderBy("timestamp","desc")),s=>{
+  todosAlbaranes=[]; s.forEach(d=>todosAlbaranes.push({id:d.id,...d.data()}));
+  renderOped(); renderOcom(); renderOCs();
+});
+
 onSnapshot(query(collection(db,"movimientos"),where("empresa","==","CETLOG"),orderBy("timestamp","desc")),s=>{
   movimientosCetlog=[]; s.forEach(d=>movimientosCetlog.push({id:d.id,...d.data()}));
   renderMov();
@@ -169,46 +192,36 @@ onSnapshot(query(collection(db,"movimientos"),where("empresa","==","CETLOG"),ord
 // computeOrderState (deadline), sin penalización aquí.
 
 function renderOCs(){
+  window.renderSummary("sumContent",[
+    {label:"Solicitudes recibidas", ordenes:ocsEntrantes, completedKey:"recibido", albaranesFn:o=>todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")},
+    {label:"Pedidos a CETLOG", ordenes:misOped, completedKey:"enviado", albaranesFn:o=>todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="salida")},
+    {label:"Compras a fábrica", ordenes:misOcom, completedKey:"recibido", albaranesFn:o=>todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")},
+  ]);
   const c=document.getElementById("ocContainer");
-  if(!ocsEntrantes.length){ c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin OCs entrantes.</p>'; return; }
-  c.innerHTML=ocsEntrantes.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,
-    albaranes:[]})).join("");
+  if(!ocsEntrantes.length){ c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin solicitudes recibidas.</p>'; return; }
+  c.innerHTML=window.__sortOrders(ocsEntrantes).map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,
+    albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")})).join("");
 }
 
 function renderOCsPanel(){
-  const c=document.getElementById("ocsPanel");
-  // Mostrar TODAS las OCs entrantes (no solo pendientes), para que quede el registro
-  const a=window.__sortOrders ? window.__sortOrders(ocsEntrantes) : ocsEntrantes;
-  if(!a.length){ c.innerHTML='<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin OCs entrantes.</p>'; return; }
-  c.innerHTML=a.map(o=>{
-    const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
-    const itemsJson=encodeURIComponent(JSON.stringify(o.items));
-    const destFinal=o.emisor; // quien pidió es el destino final
-    // ¿Ya registré una OPED a CETLOG que referencia esta OC?
-    const opedReg=misOped.find(p=>p.referencia===o.codigo);
-    if(opedReg){
-      return `<div class="notif-card registrada" style="border-left-color:#3B6D11">
-        <div class="notif-title" style="color:#27500A">✓ ${o.codigo} → registrado a CETLOG</div>
-        <div class="notif-detail">${items}<br>De: ${window.AGENT_LABEL[o.emisor]}<br>Pedido a CETLOG: <b style="font-family:Menlo,monospace">${opedReg.codigo}</b></div>
-      </div>`;
-    }
-    return `<div class="notif-card" style="background:#fff;border-color:#97C459;border-left-color:#3B6D11">
-      <div class="notif-title" style="color:#27500A">📥 ${o.codigo}</div>
-      <div class="notif-detail">${items}<br>De: ${window.AGENT_LABEL[o.emisor]}<br><i>Regístralo como pedido a CETLOG.</i></div>
-      <button class="notif-btn" style="background:#EAF3DE;color:#27500A;border-color:#97C459" onclick="window.responderOPED('${o.codigo}','${destFinal}','${itemsJson}')">→ Pedir a CETLOG</button>
-    </div>`;
-  }).join("");
+  window.renderIncomingPanel({
+    containerId:"ocsPanel", ordenes:ocsEntrantes, accent:"#3B6D11",
+    onMarcar:"marcarRegistradaOC"
+  });
 }
+window.marcarRegistradaOC=async function(id){
+  await updateDoc(doc(db,"ordenes",id),{marcadaRegistrada:true});
+};
 
 function renderOped(){
   const c=document.getElementById("opedContainer");
-  c.innerHTML=misOped.length?misOped.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"enviado",albaranes:[]})).join("")
+  c.innerHTML=misOped.length?misOped.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"enviado",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="salida")})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin pedidos a CETLOG.</p>';
 }
 
 function renderOcom(){
   const c=document.getElementById("ocomContainer");
-  c.innerHTML=misOcom.length?misOcom.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",albaranes:[]})).join("")
+  c.innerHTML=misOcom.length?misOcom.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin compras a la fábrica.</p>';
 }
 
@@ -223,16 +236,17 @@ function renderMov(){
     }).join("")+'</tbody></table></div>';
 }
 
-window.responderOPED=function(codigoOC, destFinal, itemsJson){
-  const items=JSON.parse(decodeURIComponent(itemsJson));
-  mOped.open({opRef:codigoOC});
-  document.getElementById("opDest").value = destFinal==="YICHANG"?"YICHANG":"TOTTUS_CD";
-  mOped.setRows(items);
-};
-window.responderOCOM=function(itemsJson){
-  const items=JSON.parse(decodeURIComponent(itemsJson));
-  mOcom.open();
-  mOcom.setRows(items);
+window.cargarRefOped=function(){
+  const codigo=document.getElementById("opRef").value.trim();
+  const prev=document.getElementById("opPreview");
+  if(!codigo){ prev.style.display="none"; mOped.alert("Pega un código de pedido.",true); return; }
+  const oc=ocsEntrantes.find(o=>o.codigo===codigo);
+  if(!oc){ prev.style.display="none"; mOped.alert(`No encuentro el pedido ${codigo}.`,true); return; }
+  // autodetectar destino final (quién pidió)
+  document.getElementById("opDest").value = oc.emisor==="YICHANG"?"YICHANG":"TOTTUS_CD";
+  prev.style.display="block";
+  prev.innerHTML=`<b>${codigo}</b> (de ${window.AGENT_LABEL[oc.emisor]}) pidió: ${(oc.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ")}`;
+  mOped.setRowsEmpty(oc.items);
 };
 
 window.crearOPED=async function(){

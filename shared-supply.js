@@ -203,7 +203,12 @@ window.SupplyModal = class {
     this.rows = rows && rows.length ? rows.map(r=>({producto:r.producto,cantidad:r.cantidad})) : [{producto:window.PRODS[0],cantidad:1}];
     this._render();
   }
-  addRow() { this.rows.push({ producto: window.PRODS[0], cantidad: 1 }); this._render(); }
+  /* Carga los productos del pedido pero con cantidad vacía: el usuario decide cuánto */
+  setRowsEmpty(rows) {
+    this.rows = rows && rows.length ? rows.map(r=>({producto:r.producto,cantidad:0})) : [{producto:window.PRODS[0],cantidad:0}];
+    this._render();
+  }
+  addRow() { this.rows.push({ producto: window.PRODS[0], cantidad: 0 }); this._render(); }
   removeRow(i) { if (this.rows.length > 1) { this.rows.splice(i, 1); this._render(); } }
   update(i, f, v) { this.rows[i][f] = f === "cantidad" ? (parseInt(v)||0) : v; }
   alert(msg, err) {
@@ -220,7 +225,7 @@ window.SupplyModal = class {
         <select onchange="window.__supply_${id}.update(${i},'producto',this.value)">
           ${window.PRODS.map(p=>`<option value="${p}" ${r.producto===p?"selected":""}>${p}</option>`).join("")}
         </select>
-        <input type="number" min="1" value="${r.cantidad}" placeholder="Uds"
+        <input type="number" min="0" value="${r.cantidad>0?r.cantidad:''}" placeholder="0"
           oninput="window.__supply_${id}.update(${i},'cantidad',this.value)"/>
         <button class="row-rm-btn" onclick="window.__supply_${id}.removeRow(${i})"
           ${this.rows.length===1?"disabled style='opacity:.25;cursor:default'":""}>×</button>
@@ -414,6 +419,37 @@ window.tickTimers = function() {
 setInterval(window.tickTimers, 500);
 
 /* Notificaciones */
+/* Panel de pedidos entrantes UNIFICADO (UM, UP, Tottus CD).
+   - Cada tarjeta: código + botón copiar + items como referencia.
+   - Botón "Marcar registrado": NO abre modal, solo marca la orden con
+     marcadaRegistrada=true (persiste en Firestore) y desactiva la tarjeta.
+   - El usuario copia el código y lo pega en el panel izquierdo para actuar.
+   opts: { containerId, ordenes, accent, deColor, onMarcar (fnName), origenLabel(o) } */
+window.renderIncomingPanel = function(opts){
+  const c = document.getElementById(opts.containerId); if(!c) return;
+  const arr = window.__sortOrders ? window.__sortOrders(opts.ordenes) : opts.ordenes;
+  if(!arr.length){ c.innerHTML = `<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem;">Sin pedidos entrantes.</p>`; return; }
+  c.innerHTML = arr.map(o=>{
+    const items=(o.items||[]).map(it=>`${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
+    const origen = opts.origenLabel ? opts.origenLabel(o) : (window.AGENT_LABEL[o.emisor]||o.emisor);
+    if(o.marcadaRegistrada){
+      return `<div class="notif-card registrada" style="border-left-color:${opts.accent}">
+        <div class="notif-title" style="color:${opts.accent}">✓ ${o.codigo} · registrado</div>
+        <div class="notif-detail">${items}<br>De: ${origen}</div>
+      </div>`;
+    }
+    return `<div class="notif-card" style="background:#fff;border-left-color:${opts.accent}">
+      <div class="notif-title" style="display:flex;align-items:center;gap:6px;color:${opts.accent}">
+        <button class="oc-codigo-btn" style="font-size:11.5px;padding:3px 7px" onclick="window.copyCode('${o.codigo}',this)" title="Copiar código">
+          <span class="oc-codigo-txt">${o.codigo}</span><span class="oc-copy-ic">⧉</span>
+        </button>
+      </div>
+      <div class="notif-detail" style="margin-top:6px">${items}<br>De: ${origen}<br><i>Copia el código y regístralo a la izquierda.</i></div>
+      <button class="notif-btn" onclick="${opts.onMarcar}('${o.id}')">✓ Marcar registrado</button>
+    </div>`;
+  }).join("");
+};
+
 window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
   const c = document.getElementById(containerId); if(!c) return;
   if (!notifs.length) { c.innerHTML = `<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem 0;">Sin llegadas.</p>`; return; }
@@ -421,7 +457,13 @@ window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
     const t = n.timestamp ? new Date(n.timestamp.toDate?n.timestamp.toDate():n.timestamp).toLocaleTimeString("es-PE") : "—";
     const items = (n.items||[]).map(it => `${window.shortProd(it.producto)} ×${it.cantidad}`).join(", ");
     const orig = window.AGENT_LABEL[n.origen] || n.origen;
-    const ref = n.codigoOrden ? `<br>Para registrar contra: <b style="font-family:Menlo,monospace">${n.codigoOrden}</b>` : "";
+    // Botón de copiar el código contra el cual registrar
+    const refBtn = n.codigoOrden
+      ? `<div style="margin:6px 0"><span style="font-size:11px;color:#888780">Registrar contra:</span><br>
+          <button class="oc-codigo-btn" style="font-size:11.5px;padding:3px 7px;margin-top:3px" onclick="window.copyCode('${n.codigoOrden}',this)" title="Copiar código">
+            <span class="oc-codigo-txt">${n.codigoOrden}</span><span class="oc-copy-ic">⧉</span>
+          </button></div>`
+      : "";
     if (n.estado === "registrada") {
       return `<div class="notif-card registrada">
         <div class="notif-title">✓ Registrado: ${items}</div>
@@ -430,7 +472,9 @@ window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
     }
     return `<div class="notif-card">
       <div class="notif-title">● Llegó: ${items}</div>
-      <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}${ref}<br><i>Pulsa "Registrar lo recibido" para sumarlo a tu stock.</i></div>
+      <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}</div>
+      ${refBtn}
+      <div class="notif-detail" style="margin-bottom:6px"><i>Copia el código y pégalo en "Registrar lo recibido".</i></div>
       <button class="notif-btn" onclick="${onRegistrar}('${n.id}')">✓ Ya lo registré</button>
     </div>`;
   }).join("");
@@ -491,6 +535,48 @@ window.renderPenList = function(containerId, badgeId, rows, empresaLabel) {
       <div class="notif-detail">${t} · ${det}${r.codigoOrden?` · ${r.codigoOrden}`:""}</div>
     </div>`;
   }).join("");
+};
+
+/* Resumen plegable: cuenta órdenes por estado computado.
+   opts: { containerId, grupos:[{label, ordenes, completedKey, albaranesFn}] } */
+window.renderSummary = function(containerId, grupos){
+  const el = document.getElementById(containerId); if(!el) return;
+  let totAct=0, totLat=0, totDon=0;
+  const closed=["recibido","enviado","recibido_tarde","enviado_tarde"];
+  const cards = grupos.map(g=>{
+    let act=0, lat=0, don=0;
+    for(const o of g.ordenes){
+      if(o.estado==="cancelado") continue;
+      const albs = g.albaranesFn ? g.albaranesFn(o) : [];
+      const st = window.computeOrderState(o, albs, g.completedKey||"recibido");
+      if(st==="atrasado"){ lat++; }
+      else if(st==="recibido_tarde"||st==="enviado_tarde"){ don++; lat++; }
+      else if(closed.includes(st)){ don++; }
+      else { act++; }
+    }
+    totAct+=act; totLat+=lat; totDon+=don;
+    return `<div class="summary-stat">
+      <div class="ss-num" style="color:var(--c-accent)">${g.ordenes.filter(o=>o.estado!=='cancelado').length}</div>
+      <div class="ss-lbl">${g.label}</div>
+      <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">
+        ${act?`<span class="summary-chip act">${act} en curso</span>`:''}
+        ${don?`<span class="summary-chip don">${don} listas</span>`:''}
+        ${lat?`<span class="summary-chip lat">${lat} con atraso</span>`:''}
+      </div>
+    </div>`;
+  }).join("");
+  // Actualizar chips del encabezado
+  const headChips = document.getElementById(containerId+"-chips");
+  if(headChips){
+    headChips.innerHTML =
+      (totAct?`<span class="summary-chip act">${totAct} en curso</span>`:'') +
+      (totLat?`<span class="summary-chip lat">${totLat} con atraso</span>`:'') +
+      (!totAct&&!totLat?`<span class="summary-chip don">todo al día</span>`:'');
+  }
+  el.innerHTML = `<div class="summary-grid">${cards}</div>`;
+};
+window.toggleSummary = function(boxId){
+  const b=document.getElementById(boxId); if(b) b.classList.toggle("open");
 };
 
 window.switchTabSupply = function(name, el) {

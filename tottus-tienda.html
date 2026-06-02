@@ -42,6 +42,16 @@
     </div>
   </div>
 
+  <div class="summary-box open" id="sumBox">
+    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
+      <span class="summary-caret">▶</span>
+      <span>Resumen</span>
+      <span class="sh-spacer"></span>
+      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
+    </div>
+    <div class="summary-body"><div id="sumContent"></div></div>
+  </div>
+
   <div class="action-bar">
     <button class="btn-action primary" onclick="window.__supply_mOcli.open()">+ Vender al cliente</button>
     <button class="btn-action secondary" onclick="window.__supply_mOtran.open()">🛒 Pedir a Tottus CD</button>
@@ -183,6 +193,10 @@ window.startCompletionWatcher(db,fns,()=>ordenes.filter(o=>o.prefix==="TTT-OTRAN
 function albEntrada(c){ return albaranes.filter(a=>a.codigoOrden===c && a.tipo==="entrada"); }
 
 function renderOTRAN(){
+  window.renderSummary("sumContent",[
+    {label:"Pedidos a Tottus CD", ordenes:ordenes.filter(o=>o.prefix==="TTT-OTRAN"), completedKey:"recibido", albaranesFn:o=>albEntrada(o.codigo)},
+    {label:"Ventas al cliente", ordenes:ordenes.filter(o=>o.prefix==="TTT-OCLI"), completedKey:"enviado", albaranesFn:()=>[]},
+  ]);
   const c=document.getElementById("otranContainer");
   const a=window.__sortOrders(ordenes.filter(o=>o.prefix==="TTT-OTRAN"));
   c.innerHTML=a.length?a.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:true,accentColor:ACCENT,albaranes:albEntrada(o.codigo),completedKey:"recibido",viewerId:ID})).join("")
@@ -259,7 +273,7 @@ window.cargarOTRAN=async function(){
   const rem=window.itemsRemaining(o,albEntrada(codigo));
   document.getElementById("rpPreview").style.display="block";
   document.getElementById("rpPreview").innerHTML=`<b>${codigo}</b> · de TOTTUS CD<br>${rem.map(r=>`${window.shortProd(r.producto)}: ${r.pendiente}/${r.pedido} pendientes`).join(" · ")}`;
-  mRecep.setRows(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto,cantidad:r.pendiente})));
+  mRecep.setRowsEmpty(rem.filter(r=>r.pendiente>0).map(r=>({producto:r.producto})));
 };
 
 window.crearRECEP=async function(){
