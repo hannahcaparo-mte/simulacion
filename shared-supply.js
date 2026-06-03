@@ -241,6 +241,7 @@ window.createSupplyModal = function(overlayId, rowsContId, alertId) {
 /* Watcher de expiración: el responsable monitorea sus propios pedidos */
 window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
   const { doc, runTransaction, collection, addDoc, serverTimestamp } = fns;
+  const enProceso = new Set(); // evita reentrada sobre la misma orden
   setInterval(async () => {
     if (window.isPaused()) return; // congelado: no vence ni penaliza
     const now = window.effectiveNow();
@@ -249,7 +250,10 @@ window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
       if (o.responsable !== miAgente) continue;
       if (o.estado !== "pendiente") continue;
       if (!o.deadlineMs || now < o.deadlineMs) continue;
+      if (enProceso.has(o.id)) continue; // ya lo estamos procesando en este ciclo
+      enProceso.add(o.id);
       try {
+        // Penalización creada DENTRO de la transacción → atómico, sin duplicados
         let didTransition = false;
         await runTransaction(db, async (tx) => {
           const ref = doc(db, "ordenes", o.id);
@@ -270,6 +274,7 @@ window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
           window.showToast("⏰", "Tiempo vencido", `${o.codigo} venció — penalización aplicada`);
         }
       } catch (e) { console.error("Expiration watcher", e); }
+      finally { enProceso.delete(o.id); }
     }
   }, 1500);
 };
@@ -314,9 +319,15 @@ window.renderOrderCard = function(orden, options = {}) {
   }[computedState] || "";
 
   // Barra de progreso por producto — se muestra siempre (desde 0/N), salvo cancelado
+  // Si la orden ya está cerrada (enviado/recibido) pero no tiene albaranes (ej: venta
+  // instantánea OCLI), mostramos todo como entregado (100%).
+  const cerrada = ["recibido","enviado","recibido_tarde","enviado_tarde"].includes(computedState);
+  const remDisplay = (cerrada && !window.itemsAnyDelivered(rem))
+    ? (orden.items||[]).map(it=>({producto:it.producto,pedido:it.cantidad,entregado:it.cantidad,pendiente:0}))
+    : rem;
   let progressHtml = "";
   if (computedState !== "cancelado") {
-    const bars = rem.map(r => {
+    const bars = remDisplay.map(r => {
       const pct = r.pedido ? Math.min(100, Math.round(r.entregado/r.pedido*100)) : 0;
       const col = window.COLORS[r.producto] || "#888780";
       const done = r.pendiente === 0;

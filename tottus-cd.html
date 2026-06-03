@@ -353,7 +353,7 @@ window.crearOCOM=async function(){
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"TCD-OCOM", emisor:ID, destino:"UNILEVER_PERU", destinoFinal:ID,
     proveedor:"UNILEVER PERÚ", tipo:"compra",
-    items, estado:"pendiente", responsable:"UNILEVER_PERU",
+    items, estado:"pendiente", responsable:null, // solicitud: no penaliza
     timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_PERU",notas:`${codigo} a UP`,timestamp:serverTimestamp()});
