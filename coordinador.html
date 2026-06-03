@@ -25,12 +25,12 @@
     @media (max-width:760px){ .pen-grid{grid-template-columns:repeat(3,1fr);} .company-row{grid-template-columns:1fr;} }
 
     .flow-map { background:#fff; border:1px solid #e5e4de; border-radius:14px; padding:20px 22px; margin-bottom:1.5rem; }
-    .flow-legend { display:flex; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
+    .flow-legend { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; margin-bottom:18px; }
     .flow-tag { font-size:12px; font-weight:500; }
     .flow-tag.canal-mod { color:#0F6E56; }
     .flow-tag.canal-trad { color:#BA7517; }
     .flow-tag.fab { color:#185FA5; }
-    .flow-track { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .flow-track { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
     .flow-node {
       flex-shrink:0; min-width:96px; text-align:center; font-size:12px; font-weight:600; line-height:1.25;
       padding:12px 10px; border-radius:12px; border:2px solid; background:#fff;
@@ -155,7 +155,7 @@ const COMPANIES={
   TOTTUS_CD:{label:"TOTTUS CD",limit:184,initial:{Rojo:40,Azul:8,Rosado:24,Blanco:32,Amarillo:24}},
   YICHANG:{label:"YICHANG",limit:120,initial:{Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40}},
   TOTTUS_TIENDA:{label:"TOTTUS TIENDA",limit:70,initial:{Rojo:8,Azul:6,Rosado:16,Blanco:8,Amarillo:12}},
-  UNILEVER_PERU:{label:"UNILEVER PERU",limit:null,initial:{}}
+  UNILEVER_PERU:{label:"UNILEVER PERU",limit:null,initial:{},sinStock:true}
 };
 const PRODS=["Rojo","Azul","Rosado","Blanco","Amarillo"];
 const PCOL={Rojo:"#E24B4A",Azul:"#378ADD",Rosado:"#E89AB9",Blanco:"#b9b7ad",Amarillo:"#EFC027",LIBRE:"#f1efe8"};
@@ -188,13 +188,21 @@ function renderCharts(){
 }
 function updateCharts(){
   for(const [k,co] of Object.entries(COMPANIES)){
+    const pe=document.getElementById("coStocks-"+k);
+    const te=document.getElementById("coTotal-"+k);
+    const se=document.getElementById("coDonut-"+k);
+    // Agentes sin almacén propio (Unilever Perú usa el de CETLOG)
+    if(co.sinStock){
+      if(pe) pe.innerHTML=`<div style="font-size:12.5px;color:#5f5e5a;background:#f9f8f5;border:1px solid #e5e4de;border-radius:9px;padding:10px 14px;line-height:1.5;">No tiene almacén propio.<br>Su inventario lo gestiona <b>CETLOG</b>.</div>`;
+      if(te) te.textContent="";
+      if(se) se.innerHTML=`<text x="60" y="64" text-anchor="middle" font-size="11" fill="#b4b2a9">—</text>`;
+      continue;
+    }
     const stock=stockData[k]||co.initial;
     const total=PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-    const pe=document.getElementById("coStocks-"+k);
     if(pe) pe.innerHTML=PRODS.map(p=>`<div class="stk-pill"><span class="stk-pill-label">${p}</span><span class="stk-pill-val" style="color:${PCOL[p]}">${stock[p]||0}</span></div>`).join("");
-    const te=document.getElementById("coTotal-"+k);
     if(te){ if(co.limit){const pct=Math.round(total/co.limit*100);const col=total>=co.limit?"#A32D2D":pct>80?"#BA7517":"#0F6E56";te.innerHTML=`<span style="color:${col};font-weight:600">${total}</span> / ${co.limit} uds`;} else te.textContent=`${total} unidades`; }
-    const se=document.getElementById("coDonut-"+k); if(se) donut(se,stock,co.limit);
+    if(se) donut(se,stock,co.limit);
   }
 }
 function donut(svg,stock,limit){
