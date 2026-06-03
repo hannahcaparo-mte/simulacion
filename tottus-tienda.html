@@ -33,24 +33,20 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="guide-box">
-    <div class="guide-role">Eres una <b>tienda retail</b>. Le vendes directo al público y te abasteces pidiendo transferencias a tu centro de distribución, <b>Tottus CD</b>.</div>
-    <div class="guide-steps">
-      <div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender al cliente"</b>. La venta es inmediata y descuenta tu stock al instante (sin cronómetro).</span></div>
+  <div class="guide-box open" id="guideBox">
+    <div class="guide-toggle" onclick="window.toggleGuide()">
+      <span class="guide-caret">▶</span>
+      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+    </div>
+    <div class="guide-content">
+      <div class="guide-role">Eres una <b>tienda retail</b>. Le vendes directo al público y te abasteces pidiendo transferencias a tu centro de distribución, <b>Tottus CD</b>.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender al cliente"</b>. La venta es inmediata y descuenta tu stock al instante (sin cronómetro).</span></div>
       <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Pedir a Tottus CD"</b>. Ellos tienen 3 minutos para enviarte.</span></div>
       <div class="guide-step"><span class="gs-num">3</span><span>Cuando llega la transferencia (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla a tu stock.</span></div>
     </div>
   </div>
-
-  <div class="summary-box open" id="sumBox">
-    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
-      <span class="summary-caret">▶</span>
-      <span>Resumen</span>
-      <span class="sh-spacer"></span>
-      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
-    </div>
-    <div class="summary-body"><div id="sumContent"></div></div>
   </div>
+  
 
   <div class="action-bar">
     <button class="btn-action primary" onclick="window.__supply_mOcli.open()">+ Vender al cliente</button>

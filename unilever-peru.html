@@ -32,24 +32,20 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="guide-box">
-    <div class="guide-role">Eres el <b>coordinador de pedidos</b>. No tienes stock propio: el inventario que ves arriba es el de tu almacén <b>CETLOG</b>. Tu trabajo es atender las solicitudes de Yichang y Tottus CD.</div>
-    <div class="guide-steps">
-      <div class="guide-step"><span class="gs-num">1</span><span>Cuando llega una <b>solicitud de compra</b> (panel derecho), míra si CETLOG tiene stock suficiente arriba.</span></div>
+  <div class="guide-box open" id="guideBox">
+    <div class="guide-toggle" onclick="window.toggleGuide()">
+      <span class="guide-caret">▶</span>
+      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+    </div>
+    <div class="guide-content">
+      <div class="guide-role">Eres el <b>coordinador de pedidos</b>. No tienes stock propio: el inventario que ves arriba es el de tu almacén <b>CETLOG</b>. Tu trabajo es atender las solicitudes de Yichang y Tottus CD.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span>Cuando llega una <b>solicitud de compra</b> (panel derecho), míra si CETLOG tiene stock suficiente arriba.</span></div>
       <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Pedir a CETLOG"</b> en esa tarjeta para que tu almacén despache. Quedará marcada como <b>registrada</b>.</span></div>
       <div class="guide-step"><span class="gs-num">3</span><span>Si a CETLOG le falta stock, usa <b>"Comprar a la fábrica"</b> (arriba) para reponer desde Unilever México.</span></div>
     </div>
   </div>
-
-  <div class="summary-box open" id="sumBox">
-    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
-      <span class="summary-caret">▶</span>
-      <span>Resumen</span>
-      <span class="sh-spacer"></span>
-      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
-    </div>
-    <div class="summary-body"><div id="sumContent"></div></div>
   </div>
+  
 
   <div class="action-bar">
     <button class="btn-action primary" onclick="abrirOPED()">+ Pedir a CETLOG (manual)</button>

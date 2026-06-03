@@ -575,6 +575,9 @@ window.renderSummary = function(containerId, grupos){
   }
   el.innerHTML = `<div class="summary-grid">${cards}</div>`;
 };
+window.toggleGuide = function(){
+  const b=document.getElementById("guideBox"); if(b) b.classList.toggle("open");
+};
 window.toggleSummary = function(boxId){
   const b=document.getElementById(boxId); if(b) b.classList.toggle("open");
 };

@@ -33,23 +33,18 @@
 </div>
 
 <div class="with-panel"><div class="page-narrow">
-  <div class="guide-box">
-    <div class="guide-role">Eres un <b>mayorista del canal tradicional</b>. Le vendes a Don Tito (bodeguero) y te abasteces comprándole a Unilever Perú.</div>
-    <div class="guide-steps">
-      <div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender a Don Tito"</b>. Tendrás 3 minutos para entregar con <b>"Entregar a Don Tito"</b> (descuenta tu stock).</span></div>
+  <div class="guide-box open" id="guideBox">
+    <div class="guide-toggle" onclick="window.toggleGuide()">
+      <span class="guide-caret">▶</span>
+      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+    </div>
+    <div class="guide-content">
+      <div class="guide-role">Eres un <b>mayorista del canal tradicional</b>. Le vendes a Don Tito (bodeguero) y te abasteces comprándole a Unilever Perú.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender a Don Tito"</b>. Tendrás 3 minutos para entregar con <b>"Entregar a Don Tito"</b> (descuenta tu stock).</span></div>
       <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Comprar a Unilever Perú"</b>. Cuando llegue la mercadería (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla.</span></div>
       <div class="guide-step"><span class="gs-num">3</span><span>Las ventas se marcan <b>Enviado</b> al entregar todo; las compras se marcan <b>Recibido</b> al recibir todo.</span></div>
     </div>
-  </div>
-
-  <div class="summary-box open" id="sumBox">
-    <div class="summary-head" onclick="window.toggleSummary('sumBox')">
-      <span class="summary-caret">▶</span>
-      <span>Resumen</span>
-      <span class="sh-spacer"></span>
-      <span id="sumContent-chips" style="display:flex;gap:5px;flex-wrap:wrap"></span>
     </div>
-    <div class="summary-body"><div id="sumContent"></div></div>
   </div>
 
   <div class="action-bar">
