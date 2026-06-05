@@ -21,7 +21,7 @@
       <img src="LOGO.png" alt="logo"/>
       <div>
         <div class="agent-name">🌿 UNILEVER PERÚ</div>
-        <span class="agent-role-badge">Coordinador · inventario en CETLOG</span>
+        <span class="agent-role-badge">Administrador · Inventario almacenado en CETLOG</span>
       </div>
     </div>
     <div class="stock-header">
@@ -35,28 +35,30 @@
   <div class="guide-box open" id="guideBox">
     <div class="guide-toggle" onclick="window.toggleGuide()">
       <span class="guide-caret">▶</span>
-      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+      <span class="guide-toggle-title">ℹ️ ¿CUÁL ES MI ROL? <span style="font-weight:400;color:#888780"></span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres el <b>coordinador de pedidos</b>. No tienes stock propio: el inventario que ves arriba es el de tu almacén <b>CETLOG</b>. Tu trabajo es atender las solicitudes de Yichang y Tottus CD.</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span>Cuando llega una <b>solicitud de compra</b> (panel derecho), míra si CETLOG tiene stock suficiente arriba.</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Pedir a CETLOG"</b> en esa tarjeta para que tu almacén despache. Quedará marcada como <b>registrada</b>.</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span>Si a CETLOG le falta stock, usa <b>"Comprar a la fábrica"</b> (arriba) para reponer desde Unilever México.</span></div>
+      <div class="guide-role">Eres el <b>administrador de pedidos</b>. No tienes stock propio: el inventario que ves es el de tu almacén <b>Cetlog</b>, si ves que no hay inventario, pídele a <b> Unilever México</b>. Tu trabajo es atender las solicitudes de <b>Yichang</b> y <b>Tottus cd</b>. </div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>ORDEN DE PEDIDO:</b> Cuando llegue una orden de compra de <b>Yichang</b> o <b>Tottus cd</b> (debes copiar el código) y registrarlo presionando <b>"Orden de pedido"</b> para <b>Cetlog </b>(encargado de despachar los pedidos). Puedes visualizar las órdenes recibidas en la pestaña <b>"Órdenes de compra recibidas" </b> y las órdenes de pedido en la pestaña <b>"Órdenes de pedido a Cetlog". </b> </span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b>ORDEN DE COMPRA:</b> Cuando veas que en <b>Cetlog</b> no hay suficiente inventario puedes pedirle a Unilever México presionando <b>"Orden de compra"</b>. Puedes visualizar las órdenes enviadas en la pestaña <b>"Órdenes de compra a Unilever Perú". </b></span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b>TU TIMER:</b> Cuando llegue una orden de compra, se inicia <b> tu timer (3 minutos)</b>, en este tiempo: 1.Debes mandar la orden de pedido a Cetlog y 2. Cetlog debe despacharlo. Cuando le llegue el pedido a Yichang o Tottus cd, se pausará <b> tu timer</b>.</span></div>
+<div class="guide-step"><span class="gs-num">4</span><span><b>MOVIMIENTOS:</b> Cuando Cetlog haga algún movimiento se te notificará en la pestaña de <b>"Movimientos de Cetlog"</b>, podrás verificar que despache correctamente los pedidos.</span></div>
+
     </div>
   </div>
   </div>
   
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="abrirOPED()">+ Pedir a CETLOG (manual)</button>
-    <button class="btn-action secondary" onclick="abrirOCOM()">🏭 Comprar a la fábrica</button>
+    <button class="btn-action primary" onclick="abrirOPED()">📦 Orden de pedido</button>
+    <button class="btn-action secondary" onclick="abrirOCOM()">🏭 Orden de compra</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oc',this)">Solicitudes recibidas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('oped',this)">Pedidos a CETLOG</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Compras a fábrica</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('mov',this)">Actividad de CETLOG</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oc',this)">Órdenes de compra recibidas</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('oped',this)">Órdenes de pedido a CETLOG</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Órdenes de compra a Unilever Perú</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('mov',this)">Movimientos de Cetlog</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oc"><div id="ocContainer"></div></div>
@@ -69,8 +71,8 @@
 </div></div>
 
 <div class="right-panel">
-  <p class="section-title-sm">OCs entrantes de YICHANG / TOTTUS CD</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Atiende cada solicitud pidiendo a CETLOG.</p>
+  <p class="section-title-sm">órdenes de compra recibidas</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De Yichang cd o Tottus cd</p>
   <div id="ocsPanel"></div>
 </div>
 
@@ -154,8 +156,7 @@ window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT);
 onSnapshot(query(collection(db,"ordenes"),where("destino","==",ID),orderBy("timestamp","desc")),s=>{
   ocsEntrantes=[]; s.forEach(d=>{
     const o={id:d.id,...d.data()};
-    // Solo solicitudes de compra de Yichang o Tottus CD (no las propias ni otras)
-    if(o.prefix==="YI-OCOM" || o.prefix==="TCD-OCOM") ocsEntrantes.push(o);
+       if(o.prefix==="YI-OCOM" || o.prefix==="TCD-OCOM") ocsEntrantes.push(o);
   });
   renderOCs(); renderOCsPanel();
 });

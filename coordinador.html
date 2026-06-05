@@ -54,8 +54,7 @@
       <div class="agent-accent"></div>
       <img src="LOGO.png" alt="logo"/>
       <div>
-        <div class="agent-name">🎯 COORDINADOR</div>
-        <span class="agent-role-badge">Vista global de la simulación</span>
+        <div class="agent-name">🎯 VISUALIZACIÓN DE LA SIMULACIÓN </div>
       </div>
     </div>
     <div class="stock-header">
@@ -68,39 +67,46 @@
 
 <div class="page-narrow">
   <div class="flow-map">
-    <p class="section-title-sm" style="margin-bottom:14px;">Cómo fluye la cadena de suministros</p>
+    <p class="section-title-sm" style="margin-bottom:14;">FLUJO DE LA CADENA  DE SUMINISTROS </p>
     <div class="flow-legend">
-      <span class="flow-tag canal-mod">● Canal moderno (retail)</span>
-      <span class="flow-tag canal-trad">● Canal tradicional</span>
-      <span class="flow-tag fab">● Fábrica / almacén</span>
     </div>
 
     <div class="flow-track">
       <div class="flow-node fab">🏭<br>UNILEVER<br>MÉXICO<div class="flow-sub">Fabrica</div></div>
+
       <div class="flow-arrow">→</div>
-      <div class="flow-node fab">📦<br>CETLOG<div class="flow-sub">Almacén de U. Perú</div></div>
+
+      <div class="flow-node fab">📦<br>CETLOG<div class="flow-sub">Almacén</div></div>
+<div class="flow-node fab">📦<br>UNILEVER<br>PERÚ<div class="flow-sub">Administrador</div></div>
+
       <div class="flow-arrow">→</div>
+
       <div class="flow-split">
         <div class="flow-branch">
-          <div class="flow-node mod">🏪<br>TOTTUS CD<div class="flow-sub">Centro distrib.</div></div>
+          <div class="flow-node mod">🏪<br>TOTTUS CD<div class="flow-sub">Centro de distribución</div></div>
+
           <div class="flow-arrow sm">→</div>
-          <div class="flow-node mod">🛒<br>TOTTUS<br>TIENDA<div class="flow-sub">Vende al público</div></div>
+
+          <div class="flow-node mod">🛒<br>TOTTUS<br>TIENDA<div class="flow-sub">Venta en tienda</div></div>
         </div>
+
         <div class="flow-branch">
           <div class="flow-node trad">🏬<br>YICHANG<div class="flow-sub">Mayorista</div></div>
+
           <div class="flow-arrow sm">→</div>
-          <div class="flow-node trad">🧍<br>DON TITO<div class="flow-sub">Bodega cliente</div></div>
+
+          <div class="flow-node trad">🧍<br>DON TITO<div class="flow-sub">Venta en bodega</div></div>
         </div>
       </div>
     </div>
-    <p class="flow-note">UNILEVER PERÚ coordina los pedidos: recibe las solicitudes de Tottus CD y Yichang, y le pide a CETLOG (su almacén) que despache. Si CETLOG no tiene stock, compra a Unilever México.</p>
+  
   </div>
 
-  <p class="section-title-sm" style="margin-bottom:8px;">Penalizaciones por empresa</p>
+  <p class="section-title-sm" style="margin-bottom:8px;">Penalizaciones por agente</p>
   <div class="pen-grid" id="penGrid"></div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="switchTab('stocks',this)">Stocks</button>
+    <button class="tab-supply active" onclick="switchTab('stocks',this)">Stocks disponibles</button>
     <button class="tab-supply" onclick="switchTab('ordenes',this)">Órdenes</button>
     <button class="tab-supply" onclick="switchTab('albaranes',this)">Movimientos</button>
     <button class="tab-supply" onclick="switchTab('penhist',this)">Penalizaciones</button>
@@ -193,7 +199,7 @@ function updateCharts(){
     const se=document.getElementById("coDonut-"+k);
     // Agentes sin almacén propio (Unilever Perú usa el de CETLOG)
     if(co.sinStock){
-      if(pe) pe.innerHTML=`<div style="font-size:12.5px;color:#5f5e5a;background:#f9f8f5;border:1px solid #e5e4de;border-radius:9px;padding:10px 14px;line-height:1.5;">No tiene almacén propio.<br>Su inventario lo gestiona <b>CETLOG</b>.</div>`;
+      if(pe) pe.innerHTML=`<div style="font-size:12.5px;color:#5f5e5a;background:#f9f8f5;border:1px solid #e5e4de;border-radius:9px;padding:10px 14px;line-height:1.5;">Su inventario lo almacena <b>CETLOG</b>.</div>`;
       if(te) te.textContent="";
       if(se) se.innerHTML=`<text x="60" y="64" text-anchor="middle" font-size="11" fill="#b4b2a9">—</text>`;
       continue;

@@ -21,7 +21,7 @@
       <img src="LOGO.png" alt="logo"/>
       <div>
         <div class="agent-name">🏬 YICHANG</div>
-        <span class="agent-role-badge">Canal tradicional · vende a Don Tito · cap. 120</span>
+        <span class="agent-role-badge">Mayorista · Canal tradicional</span>
       </div>
     </div>
     <div class="stock-header">
@@ -36,27 +36,32 @@
   <div class="guide-box open" id="guideBox">
     <div class="guide-toggle" onclick="window.toggleGuide()">
       <span class="guide-caret">▶</span>
-      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+      <span class="guide-toggle-title">ℹ️ ¿CUÁL ES MI ROL? <span style="font-weight:400;color:#888780"></span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres un <b>mayorista del canal tradicional</b>. Le vendes a Don Tito (bodeguero) y te abasteces comprándole a Unilever Perú.</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender a Don Tito"</b>. Tendrás 3 minutos para entregar con <b>"Entregar a Don Tito"</b> (descuenta tu stock).</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Comprar a Unilever Perú"</b>. Cuando llegue la mercadería (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla.</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span>Las ventas se marcan <b>Enviado</b> al entregar todo; las compras se marcan <b>Recibido</b> al recibir todo.</span></div>
+      <div class="guide-role"> Eres un <b>mayorista del canal tradicional</b>. Le vendes a <b>Don Tito</b> y te abasteces comprándole a <b>Unilever Perú</b>.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b> REGISTRAR VENTA:</b> Para registrar un pedido de Don Tito, pulsa <b>"Orden de venta"</b>. Puedes visualizar las órdenes en la pestaña "Órdenes de venta".</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b> DESPACHAR: </b> Copia el <b> código </b> del panel de "Órdenes de venta". Pulsa <b>"Despachar"</b>, pega el código y carga el pedido. Despacha lo pendiente y pulsa en <b>"Registrar"</b>. </span></div>
+
+      <div class="guide-step"><span class="gs-num">3</span><span> <B> PEDIR MÁS STOCK: </b> Pulsa <b>"Orden de compra".</b> Pide el stock que te haga falta. Puedes visualizar las órdenes en la pestaña "Órdenes de compra a Unilever Perú"</span></div>
+<div class="guide-step"><span class="gs-num">4</span><span> <b> REGISTRAR:</b> Copia el <b> código</b> del panel de "Órdenes de compra". Pulsa <b>"Registrar"</b>, pega el código y carga el pedido. Registra el inventario y pulsa en <b>"Registrar"</b></span></div>
+
+<div class="guide-step"><span class="gs-num">5</span><span> <B> TU TIMER: </b> Cuando registras una Orden de venta tendrás 3 minutos para despacharlo.</span></div>
+
     </div>
     </div>
   </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOven.open()">+ Vender a Don Tito</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">📦 Entregar a Don Tito</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Comprar a Unilever Perú</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
+    <button class="btn-action primary" onclick="window.__supply_mOven.open()">🛒 Orden de venta</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Despachar</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Orden de compra a Unilever Perú</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Mis ventas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Mis compras</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Órdenes de venta</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Órdenes de compras</button>
     <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
@@ -69,8 +74,8 @@
 </div></div>
 
 <div class="right-panel">
-  <p class="section-title-sm">Llegadas de CETLOG</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra lo que llega de Unilever Perú.</p>
+  <p class="section-title-sm">LLEGADAS DE INVENTARIO</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra el inventario que te manden.</p>
   <div id="notifContainer"></div>
 </div>
 

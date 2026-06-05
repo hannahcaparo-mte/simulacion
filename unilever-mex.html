@@ -20,8 +20,8 @@
       <div class="agent-accent"></div>
       <img src="LOGO.png" alt="logo"/>
       <div>
-        <div class="agent-name">🏭 UNILEVER MEX</div>
-        <span class="agent-role-badge">Fabricante · sin límite</span>
+        <div class="agent-name">🏭 UNILEVER MÉXICO</div>
+        <span class="agent-role-badge">Fabricante · Envíos por barco</span>
       </div>
     </div>
     <div class="stock-header">
@@ -36,26 +36,26 @@
   <div class="guide-box open" id="guideBox">
     <div class="guide-toggle" onclick="window.toggleGuide()">
       <span class="guide-caret">▶</span>
-      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+      <span class="guide-toggle-title">ℹ️ ¿CUÁL ES MI ROL? <span style="font-weight:400;color:#888780"></span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres la <b>fábrica</b>. Produces y vendes a Unilever Perú (que lo recibe en su almacén CETLOG).</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span>Cuando te llega un <b>pedido de compra</b> (lo ves en el panel derecho), pulsa <b>"Registrar venta"</b> en esa tarjeta.</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span>Tienes <b>3 minutos</b> para entregar. Pulsa <b>"Enviar productos"</b> e indica cuánto despachas (puede ser por partes).</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span>Cuando entregues todo, el pedido se marca <b>Enviado</b> automáticamente. Si se acaba el tiempo antes, recibes una penalización.</span></div>
+      <div class="guide-role">Eres la <b>fábrica</b>. Produces y vendes a Unilever Perú (que almacena su inventario en CETLOG).</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>ORDEN DE VENTA:</b> Cuando te llega una orden de compra de <b>Unilever Perú</b> copia el <b>código</b>. Presiona en <b>Orden de pedido</b>, pega el <b>código</b> y regístralo. Puedes visualizar las órdenes de venta en la pestaña <b>"Órdenes de venta". </b> </span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b>DESPACHO:</b> Para despachar, copia el <b> código </b> de la orden de venta y presiona en <b>Despachar</b>. Pégala y registrala. Puedes visualizar tus envíos en la pestaña <b>"Despachos". </b> </span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b>TIMER:</b> Cuando te llegue una orden de compra se iniciará <b>tu timer (3 minutos)</b> para poder despacharlo. </span></div>
     </div>
   </div>
   </div>
   
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.abrirOVEN()">+ Registrar venta manual</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar productos</button>
+    <button class="btn-action primary" onclick="window.abrirOVEN()">📦 Orden de venta</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Despachar</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Pedidos recibidos</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Mis envíos</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('oven',this)">Órdenes de venta</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Despachos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-oven"><div id="ovenContainer"></div></div>
@@ -66,25 +66,25 @@
 </div></div>
 
 <div class="right-panel">
-  <p class="section-title-sm">OCs entrantes de UNILEVER PERÚ</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:10px;">Registra la venta y luego envía los productos.</p>
+  <p class="section-title-sm">Órdenes de compra</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:10px;">De Unilever Perú</p>
   <div id="ocsEntrantes"></div>
 </div>
 
 <div class="modal-overlay" id="mOven">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Registrar venta</div><div class="modal-sub">Tendrás 3 minutos para entregar</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar órdenes de venta</div><div class="modal-sub">Registra pegando el código de la orden de compra que recibas.</div></div>
       <button class="modal-close" onclick="window.__supply_mOven.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Almacén de origen</label>
         <input type="text" id="ovAlmacen" class="modal-input" value="UNILEVER MEX" readonly/></div>
       <div class="modal-field"><label class="modal-label">Cliente</label>
         <select id="ovCliente" class="modal-select"><option value="UNILEVER_PERU">UNILEVER PERÚ (envío a CETLOG)</option></select></div>
-      <div class="modal-field"><label class="modal-label">Código del pedido (pégalo aquí)</label>
+      <div class="modal-field"><label class="modal-label">Código de la orden de compra</label>
         <input type="text" id="ovRef" class="modal-input" placeholder="Ej: UP-OCOM-003"/>
-        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefVenta()">Ver qué pidieron →</button></div>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefVenta()">Cargar orden →</button></div>
       <div class="modal-preview" id="ovPreview" style="display:none"></div>
-      <div class="modal-field"><label class="modal-label">¿Cuánto vas a vender? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
+      <div class="modal-field"><label class="modal-label">Registra lo que tienes que entregar <span style="color:#888780;font-weight:400"></span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="ovRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mOven.addRow()">+ Agregar producto</button></div>
@@ -92,21 +92,21 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOven.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOVEN()">Registrar venta →</button>
+      <button class="btn-m primary" onclick="window.crearOVEN()">Registrar →</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Enviar productos</div><div class="modal-sub">Indica cuánto despachas · descuenta tu stock</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registra despacho</div><div class="modal-sub">Registra copiando el código de orden de venta</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
       <div class="modal-field"><label class="modal-label">Código de orden de venta</label>
         <input type="text" id="dpCodigo" class="modal-input" placeholder="Ej: UM-OVEN-001"/>
         <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOVEN()">Cargar orden →</button></div>
       <div class="modal-preview" id="dpPreview" style="display:none"></div>
-      <div class="modal-field"><label class="modal-label">Items a despachar</label>
+      <div class="modal-field"><label class="modal-label">Registrar lo que vayas a despachar</label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="dpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mDesp.addRow()">+ Agregar producto</button></div>

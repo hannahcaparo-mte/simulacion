@@ -21,7 +21,7 @@
       <img src="LOGO.png" alt="logo"/>
       <div>
         <div class="agent-name">📦 CETLOG</div>
-        <span class="agent-role-badge">Almacén de UNILEVER PERÚ · cap. 184</span>
+        <span class="agent-role-badge">Almacén de Unilever Perú · Encargado de despachar pedidos </span>
       </div>
     </div>
     <div class="stock-header">
@@ -36,21 +36,21 @@
   <div class="guide-box open" id="guideBox">
     <div class="guide-toggle" onclick="window.toggleGuide()">
       <span class="guide-caret">▶</span>
-      <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
+      <span class="guide-toggle-title">ℹ️ ¿CUÁL ES MI ROL? <span style="font-weight:400;color:#888780"></span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres el <b>almacén de Unilever Perú</b>. Guardas el stock y lo despachas cuando Unilever Perú te lo pide. También recibes la mercadería que envía la fábrica (Unilever México).</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span>Cuando Unilever Perú te envía un <b>pedido</b>, aparece en la pestaña principal con un <b>cronómetro de 3 minutos</b>.</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Enviar productos"</b> para despachar a Tottus CD o Yichang (puedes enviar por partes). Esto descuenta tu stock.</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span>Cuando llega mercadería de la fábrica (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla a tu stock.</span></div>
+      <div class="guide-role">Eres el <b>almacén de Unilever Perú</b>. Guardas el stock y lo despachas cuando Unilever Perú te lo pide. También recibes la mercadería que envía Unilever México.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>DESPACHAR:</b> Cuando te llegue una orden de pedido copia el <b>código</b>. Pulsa en <b>"Despachar"</b>, pega el <b>código</b> y presiona en <b>"Registrar"</b>.</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b>REGISTRAR:</b> Cuando Unilever México te envíe inventario copia el <b>código</b>. Pulsa en <b>"Registrar "</b>, esto descuenta de tu stock.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b>TU TIMER:</b> Cuando llega una orden de pedido de Unilever Perú inicia <b>tu timer (3 minutos)</b> en el que debes de despacharlo. </span></div>
     </div>
   </div>
   </div>
   
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="abrirDESP()">📦 Enviar productos</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
+    <button class="btn-action primary" onclick="abrirDESP()">📦 Despachar</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar</button>
   </div>
 
   <div class="tabs-supply">
@@ -66,22 +66,22 @@
 </div></div>
 
 <div class="right-panel">
-  <p class="section-title-sm">Notificaciones de UNILEVER MEX</p>
-  <p style="font-size:11px;color:#888780;margin-bottom:8px;">Registra lo que llega de la fábrica.</p>
+  <p class="section-title-sm">Inventario recibido</p>
+  <p style="font-size:11px;color:#888780;margin-bottom:8px;">De Unilever México</p>
   <div id="notifContainer"></div>
 </div>
 
 <!-- Modal DESP (contra OPED de UP) -->
 <div class="modal-overlay" id="mDesp">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Enviar productos</div><div class="modal-sub">Despacha el pedido de Unilever Perú · descuenta tu stock</div></div>
+    <div class="modal-header"><div><div class="modal-title">Despachar productos</div><div class="modal-sub"> Atiende el pedido de Unilever Perú · esto descontará de tu stock</div></div>
       <button class="modal-close" onclick="window.__supply_mDesp.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código del pedido de Unilever Perú</label>
+      <div class="modal-field"><label class="modal-label">Código de la orden de pedido</label>
         <input type="text" id="dpCodigo" class="modal-input" placeholder="Ej: UP-OPED-001"/>
         <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarOPED()">Cargar orden →</button></div>
       <div class="modal-preview" id="dpPreview" style="display:none"></div>
-      <div class="modal-field"><label class="modal-label">Items a despachar</label>
+      <div class="modal-field"><label class="modal-label">Registra lo que vas a despachar</label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="dpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mDesp.addRow()">+ Agregar producto</button></div>
@@ -97,14 +97,14 @@
 <!-- Modal RECEP (entrada de UM contra UP-OCOM) -->
 <div class="modal-overlay" id="mRecep">
   <div class="modal">
-    <div class="modal-header"><div><div class="modal-title">Registrar lo recibido</div><div class="modal-sub">Suma a tu stock lo que envió la fábrica</div></div>
+    <div class="modal-header"><div><div class="modal-title">Registrar inventario</div><div class="modal-sub">Registra lo que Unilever México te envíe · Esto se sumará a tu stock.</div></div>
       <button class="modal-close" onclick="window.__supply_mRecep.close()">×</button></div>
     <div class="modal-body">
-      <div class="modal-field"><label class="modal-label">Código de la compra (pégalo aquí)</label>
+      <div class="modal-field"><label class="modal-label">Código de la orden de compra</label>
         <input type="text" id="rpRef" class="modal-input" placeholder="Ej: UP-OCOM-001"/>
-        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefRecep()">Ver qué llegó →</button></div>
+        <button class="btn-m" style="margin-top:6px;width:100%" onclick="window.cargarRefRecep()">Cargar orden →</button></div>
       <div class="modal-preview" id="rpPreview" style="display:none"></div>
-      <div class="modal-field"><label class="modal-label">¿Cuánto recibiste? <span style="color:#888780;font-weight:400">(escribe las cantidades)</span></label>
+      <div class="modal-field"><label class="modal-label">Registra lo que recibiste <span style="color:#888780;font-weight:400"></span></label>
         <div class="col-labels-3"><span>Producto</span><span>Cantidad</span><span></span></div>
         <div class="rows-modal" id="rpRows"></div>
         <button class="row-add-btn" onclick="window.__supply_mRecep.addRow()">+ Agregar producto</button></div>
