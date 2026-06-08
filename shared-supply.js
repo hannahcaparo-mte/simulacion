@@ -239,6 +239,46 @@ window.createSupplyModal = function(overlayId, rowsContId, alertId) {
 };
 
 /* Watcher de expiración: el responsable monitorea sus propios pedidos */
+/* Watcher de CADENA (para Unilever Perú): la orden de compra entrante se considera
+   cumplida cuando el cliente final recibió todo. Si al vencer el deadline NO está
+   completada (sigue pendiente o parcial), se penaliza al responsable.
+   completedFn(orden) => true si ya está cumplida (recibido por el cliente). */
+window.startChainWatcher = function(db, fns, ordenesObservable, miAgente, completedFn) {
+  const { doc, runTransaction, collection, addDoc, serverTimestamp } = fns;
+  const enProceso = new Set();
+  setInterval(async () => {
+    if (window.isPaused()) return;
+    const now = window.effectiveNow();
+    for (const o of ordenesObservable()) {
+      if (o.responsable !== miAgente) continue;
+      if (!o.deadlineMs || now < o.deadlineMs) continue;
+      if (o.penalizada) continue;
+      if (completedFn(o)) continue;        // ya se cumplió a tiempo → no penaliza
+      if (enProceso.has(o.id)) continue;
+      enProceso.add(o.id);
+      try {
+        let did = false;
+        await runTransaction(db, async (tx) => {
+          const ref = doc(db, "ordenes", o.id);
+          const snap = await tx.get(ref);
+          if (!snap.exists()) return;
+          const d = snap.data();
+          if (!d.penalizada) { tx.update(ref, { penalizada: true }); did = true; }
+        });
+        if (did) {
+          await addDoc(collection(db, "penalizaciones"), {
+            empresa: miAgente, motivo: "Cadena incompleta",
+            detalle: `${o.codigo}: el pedido no llegó al cliente en 3 min`,
+            codigoOrden: o.codigo, timestamp: serverTimestamp()
+          });
+          window.showToast("⏰", "Tiempo vencido", `${o.codigo}: la cadena no llegó a tiempo`);
+        }
+      } catch (e) { console.error("Chain watcher", e); }
+      finally { enProceso.delete(o.id); }
+    }
+  }, 1500);
+};
+
 window.startExpirationWatcher = function(db, fns, ordenesObservable, miAgente) {
   const { doc, runTransaction, collection, addDoc, serverTimestamp } = fns;
   const enProceso = new Set(); // evita reentrada sobre la misma orden
@@ -586,6 +626,22 @@ window.renderSummary = function(containerId, grupos){
   }
   el.innerHTML = `<div class="summary-grid">${cards}</div>`;
 };
+/* Anti-doble-click: bloquea reejecución de una acción mientras está en curso.
+   Uso: onclick="window.guard('crearDESP', window.crearDESP)" — pero para simplificar,
+   exponemos window.once(key, fn) que ignora llamadas repetidas dentro de 2s. */
+window.__busy = {};
+window.once = async function(key, fn, btn){
+  if (window.__busy[key]) return;          // ya se está ejecutando → ignorar
+  window.__busy[key] = true;
+  if (btn){ btn.disabled = true; btn.style.opacity = "0.6"; btn.style.cursor = "wait"; }
+  try { await fn(); }
+  catch(e){ console.error("once("+key+")", e); }
+  finally {
+    window.__busy[key] = false;
+    if (btn){ btn.disabled = false; btn.style.opacity = ""; btn.style.cursor = ""; }
+  }
+};
+
 window.toggleGuide = function(){
   const b=document.getElementById("guideBox"); if(b) b.classList.toggle("open");
 };

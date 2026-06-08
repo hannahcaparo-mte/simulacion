@@ -97,7 +97,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOven.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOVEN()">Crear orden →</button>
+      <button class="btn-m primary" onclick="window.once('yichang.html-crearOVEN',window.crearOVEN,this)">Crear orden →</button>
     </div>
   </div>
 </div>
@@ -120,7 +120,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mDesp.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearDESP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('yichang.html-crearDESP',window.crearDESP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -141,7 +141,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCOM()">Comprar →</button>
+      <button class="btn-m primary" onclick="window.once('yichang.html-crearOCOM',window.crearOCOM,this)">Comprar →</button>
     </div>
   </div>
 </div>
@@ -164,7 +164,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mRecep.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearRECEP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('yichang.html-crearRECEP',window.crearRECEP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -318,11 +318,17 @@ window.crearDESP=async function(){
 window.crearOCOM=async function(){
   const items=mOcom.getItems();
   if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
+  // No permitir comprar si el stock total superaría el límite del almacén
+  const totalActual=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
+  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
+  if(totalActual+totalPedido>LIMIT){
+    mOcom.alert(`No puedes comprar: tu almacén tiene ${totalActual} y el límite es ${LIMIT}. Pedir ${totalPedido} lo superaría. Vende stock antes de comprar.`,true); return;
+  }
   const codigo=await window.getNextCode(db,fns,"YI-OCOM");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"YI-OCOM", emisor:ID, destino:"UNILEVER_PERU", destinoFinal:ID,
     proveedor:"UNILEVER PERÚ", tipo:"compra",
-    items, estado:"pendiente", responsable:null, // solicitud: no penaliza
+    items, estado:"pendiente", responsable:"UNILEVER_PERU", // UP responde y se penaliza si no llega a tiempo
     timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_PERU",notas:`${codigo} a UP`,timestamp:serverTimestamp()});
@@ -356,12 +362,14 @@ window.crearRECEP=async function(){
   if(!val.ok){ mRecep.alert(val.error,true); return; }
   const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;
-  if(total+added>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Recepción de ${added} uds supera ${LIMIT}`,codigoOrden:codigo,timestamp:serverTimestamp()});
-    mRecep.alert(`⚠ Supera el límite (${LIMIT}). Penalización registrada.`,true); return;
-  }
+  // Se PERMITE recibir aunque supere el límite, pero se penaliza por pedir de más.
+  const excede = (total+added>LIMIT);
   const ns={...stock}; for(const it of items) ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
+  if(excede){
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock sobrepasado",detalle:`Recibió ${added} uds y superó el límite de ${LIMIT}. Pidió de más sin fijarse.`,codigoOrden:codigo,timestamp:serverTimestamp()});
+    window.showToast("⚠️","Stock sobrepasado",`Superaste el límite de ${LIMIT} — penalización aplicada`);
+  }
   const codRecep=await window.getNextCode(db,fns,"YI-RECEP");
   await addDoc(collection(db,"albaranes"),{
     codigo:codRecep, prefix:"YI-RECEP", emisor:ID, destinatario:ID, origen:"CETLOG",

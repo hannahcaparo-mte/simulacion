@@ -39,25 +39,26 @@
       <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres el <b>centro de distribución</b> de Tottus. Abasteces a las tiendas Tottus y te repones comprando a Unilever Perú.</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span>Cuando una tienda te pide una <b>transferencia</b> (panel derecho), pulsa <b>"Atender pedido"</b>. Tendrás 3 minutos.</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span>Pulsa <b>"Enviar a la tienda"</b> para despachar (descuenta tu stock). Puedes enviar por partes.</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span><b>Si te falta stock:</b> usa <b>"Comprar a Unilever Perú"</b> y luego <b>"Registrar lo recibido"</b> cuando llegue.</span></div>
+      <div class="guide-role"> Eres el <b>centro de distribución de Tottus</b>. Abasteces a las tiendas <b>Tottus</b> y te repones comprándole a <b>Unilever Perú</b>.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b> ORDEN DE TRANSFERENCIA:</b> Cuando te llegue un pedido de la tienda, copia el <b>código</b>. Pulsa <b>"Orden de transferencia"</b>, pega el código y carga el pedido. Puedes visualizar las órdenes en la pestaña "Órdenes de transferencia".</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b> DESPACHAR: </b> Copia el <b>código</b> del panel de "Órdenes de transferencia". Pulsa <b>"Despachar"</b>, pega el código y carga el pedido. Despacha lo pendiente y pulsa en <b>"Registrar"</b>.</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b> PEDIR MÁS STOCK: </b> Pulsa <b>"Orden de compra a Unilever Perú"</b>. Pide el stock que te haga falta. Puedes visualizar las órdenes en la pestaña "Órdenes de compra".</span></div>
+      <div class="guide-step"><span class="gs-num">4</span><span><b> REGISTRAR:</b> Copia el <b>código</b> del panel de "Órdenes de compra". Pulsa <b>"Registrar"</b>, pega el código y carga el pedido. Registra el inventario y pulsa en <b>"Registrar"</b>.</span></div>
+      <div class="guide-step"><span class="gs-num">5</span><span><b> TU TIMER: </b> Cuando te llega un pedido de la tienda, se inicia tu timer (3 minutos) para despacharlo.</span></div>
+    </div>
     </div>
   </div>
-  </div>
-  
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.abrirOTRA()">+ Atender pedido (manual)</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">📦 Enviar a la tienda</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Comprar a Unilever Perú</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
+    <button class="btn-action primary" onclick="window.abrirOTRA()">📦 Orden de transferencia</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 Despachar</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Orden de compra a Unilever Perú</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('otra',this)">Pedidos de tiendas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Mis compras</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('otra',this)">Órdenes de transferencia</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocom',this)">Órdenes de compra</button>
     <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
@@ -97,7 +98,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOtra.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOTRA()">Atender pedido →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-cd.html-crearOTRA',window.crearOTRA,this)">Atender pedido →</button>
     </div>
   </div>
 </div>
@@ -120,7 +121,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mDesp.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearDESP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-cd.html-crearDESP',window.crearDESP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -141,7 +142,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCOM()">Comprar →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-cd.html-crearOCOM',window.crearOCOM,this)">Comprar →</button>
     </div>
   </div>
 </div>
@@ -164,7 +165,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mRecep.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearRECEP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-cd.html-crearRECEP',window.crearRECEP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -285,16 +286,19 @@ window.crearOTRA=async function(){
   const items=mOtra.getItems();
   const ref=document.getElementById("trRef").value.trim();
   if(!items.length){ mOtra.alert("Agrega al menos un producto.",true); return; }
+  // El timer arranca cuando la tienda hizo el pedido (no ahora). Heredamos su deadline.
+  const pedRef = ref ? otranEntr.find(o=>o.codigo===ref) : null;
+  const deadline = (pedRef && pedRef.deadlineMs) ? pedRef.deadlineMs : window.effectiveNow()+window.TIMER_MS;
   const codigo=await window.getNextCode(db,fns,"TCD-OTRA");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"TCD-OTRA", emisor:ID, destino:"TOTTUS_TIENDA", destinoFinal:"TOTTUS_TIENDA",
     almacenDestino:"TOTTUS TIENDA", tipo:"transferencia",
     items, estado:"pendiente", responsable:ID,
     referencia:ref||null,
-    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: deadline
   });
   mOtra.close();
-  window.showToast("📋","OTRA creada",`${codigo} → TOTTUS TIENDA`);
+  window.showToast("📋","Orden creada",`${codigo} → TOTTUS TIENDA`);
 };
 
 window.cargarOTRA=async function(){
@@ -349,11 +353,16 @@ window.crearDESP=async function(){
 window.crearOCOM=async function(){
   const items=mOcom.getItems();
   if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
+  const totalActual=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
+  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
+  if(totalActual+totalPedido>LIMIT){
+    mOcom.alert(`No puedes comprar: tu almacén tiene ${totalActual} y el límite es ${LIMIT}. Pedir ${totalPedido} lo superaría. Despacha stock antes de comprar.`,true); return;
+  }
   const codigo=await window.getNextCode(db,fns,"TCD-OCOM");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"TCD-OCOM", emisor:ID, destino:"UNILEVER_PERU", destinoFinal:ID,
     proveedor:"UNILEVER PERÚ", tipo:"compra",
-    items, estado:"pendiente", responsable:null, // solicitud: no penaliza
+    items, estado:"pendiente", responsable:"UNILEVER_PERU", // UP responde y se penaliza si no llega a tiempo
     timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
   });
   await addDoc(collection(db,"movimientos"),{empresa:ID,tipo:"orden-compra",items,destino:"UNILEVER_PERU",notas:`${codigo} a UP`,timestamp:serverTimestamp()});
@@ -387,12 +396,13 @@ window.crearRECEP=async function(){
   if(!val.ok){ mRecep.alert(val.error,true); return; }
   const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;
-  if(total+added>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Recepción de ${added} uds supera ${LIMIT}`,codigoOrden:codigo,timestamp:serverTimestamp()});
-    mRecep.alert(`⚠ Supera el límite (${LIMIT}). Penalización registrada.`,true); return;
-  }
+  const excede=(total+added>LIMIT);
   const ns={...stock}; for(const it of items) ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
+  if(excede){
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock sobrepasado",detalle:`Recibió ${added} uds y superó el límite de ${LIMIT}. Pidió de más sin fijarse.`,codigoOrden:codigo,timestamp:serverTimestamp()});
+    window.showToast("⚠️","Stock sobrepasado",`Superaste el límite de ${LIMIT} — penalización aplicada`);
+  }
   const codRecep=await window.getNextCode(db,fns,"TCD-RECEP");
   await addDoc(collection(db,"albaranes"),{
     codigo:codRecep, prefix:"TCD-RECEP", emisor:ID, destinatario:ID, origen:"CETLOG",

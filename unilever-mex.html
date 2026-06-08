@@ -92,7 +92,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOven.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOVEN()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('unilever-mex.html-crearOVEN',window.crearOVEN,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -114,7 +114,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mDesp.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearDESP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('unilever-mex.html-crearDESP',window.crearDESP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -213,19 +213,23 @@ window.crearOVEN=async function(){
   const items=mOven.getItems();
   if(!items.length){ mOven.alert("Agrega al menos un producto.",true); return; }
   const ref=document.getElementById("ovRef").value.trim();
+  // El timer arranca cuando Unilever Perú creó la orden de compra (no ahora).
+  // Si registramos tarde, heredamos su deadline (queda menos tiempo).
+  const ocRef = ref ? ocsEntrantes.find(o=>o.codigo===ref) : null;
+  const deadline = (ocRef && ocRef.deadlineMs) ? ocRef.deadlineMs : window.effectiveNow()+window.TIMER_MS;
   const codigo=await window.getNextCode(db,fns,"UM-OVEN");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"UM-OVEN",
     emisor:ID, destino:"UNILEVER_PERU", destinoFinal:"CETLOG",
     almacenOrigen:"UNILEVER_MEX", cliente:"UNILEVER PERÚ",
-    tipo:"venta", tipoVenta:"directa",
+    tipo:"venta",
     items, estado:"pendiente", responsable:ID,
     referencia:ref||null,
     timestamp:serverTimestamp(),
-    deadlineMs: window.effectiveNow()+window.TIMER_MS
+    deadlineMs: deadline
   });
   mOven.close();
-  window.showToast("📋","Orden creada",`${codigo} con timer de 3 min`);
+  window.showToast("📋","Orden creada",`${codigo}`);
 };
 
 window.cargarOVEN=async function(){

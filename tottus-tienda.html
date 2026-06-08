@@ -39,25 +39,25 @@
       <span class="guide-toggle-title">ℹ️ ¿Cómo funciona mi rol? <span style="font-weight:400;color:#888780">(toca para mostrar u ocultar)</span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres una <b>tienda retail</b>. Le vendes directo al público y te abasteces pidiendo transferencias a tu centro de distribución, <b>Tottus CD</b>.</div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>Para vender:</b> pulsa <b>"Vender al cliente"</b>. La venta es inmediata y descuenta tu stock al instante (sin cronómetro).</span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span><b>Si te falta stock:</b> pulsa <b>"Pedir a Tottus CD"</b>. Ellos tienen 3 minutos para enviarte.</span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span>Cuando llega la transferencia (panel derecho), pulsa <b>"Registrar lo recibido"</b> para sumarla a tu stock.</span></div>
+      <div class="guide-role"> Eres una <b>tienda retail</b>. Le vendes directamente al público y te abasteces pidiéndole a tu centro de distribución, <b>Tottus CD</b>.</div>
+      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b> REGISTRAR VENTA:</b> Para registrar una venta al cliente, pulsa <b>"Orden de venta"</b>. La venta es inmediata y descuenta tu stock al instante. Puedes visualizar las ventas en la pestaña "Órdenes de venta".</span></div>
+      <div class="guide-step"><span class="gs-num">2</span><span><b> PEDIR MÁS STOCK: </b> Si te falta inventario, pulsa <b>"Orden de compra a Tottus CD"</b>. Pide el stock que te haga falta. Puedes visualizar las órdenes en la pestaña "Órdenes de compra a Tottus CD".</span></div>
+      <div class="guide-step"><span class="gs-num">3</span><span><b> REGISTRAR:</b> Copia el <b>código</b> del panel de "Órdenes de compra". Pulsa <b>"Registrar"</b>, pega el código y carga el pedido. Registra el inventario y pulsa en <b>"Registrar"</b>.</span></div>
+      <div class="guide-step"><span class="gs-num">4</span><span><b> TU TIMER: </b> La venta al cliente es instantánea, no tiene timer. El timer corre para <b>Tottus CD</b> cuando le pides stock (ellos tienen 3 minutos para enviártelo).</span></div>
+    </div>
     </div>
   </div>
-  </div>
-  
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOcli.open()">+ Vender al cliente</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOtran.open()">🛒 Pedir a Tottus CD</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar lo recibido</button>
+    <button class="btn-action primary" onclick="window.__supply_mOcli.open()">🛒 Orden de venta</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOtran.open()">📦 Orden de compra a Tottus CD</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar</button>
   </div>
 
   <div class="tabs-supply">
-    <button class="tab-supply active" onclick="window.switchTabSupply('otran',this)">Mis pedidos a Tottus CD</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('ocli',this)">Mis ventas</button>
-    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Recepciones</button>
+    <button class="tab-supply active" onclick="window.switchTabSupply('otran',this)">Órdenes de compra a Tottus CD</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('ocli',this)">Órdenes de venta</button>
+    <button class="tab-supply" onclick="window.switchTabSupply('alb',this)">Movimientos</button>
   </div>
 
   <div class="tab-content-supply active" id="tab-otran"><div id="otranContainer"></div></div>
@@ -90,7 +90,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcli.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCLI()">Registrar venta →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-tienda.html-crearOCLI',window.crearOCLI,this)">Registrar venta →</button>
     </div>
   </div>
 </div>
@@ -111,7 +111,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOtran.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOTRAN()">Pedir a Tottus CD →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-tienda.html-crearOTRAN',window.crearOTRAN,this)">Pedir a Tottus CD →</button>
     </div>
   </div>
 </div>
@@ -134,7 +134,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mRecep.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearRECEP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('tottus-tienda.html-crearRECEP',window.crearRECEP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -243,6 +243,11 @@ window.crearOCLI=async function(){
 window.crearOTRAN=async function(){
   const items=mOtran.getItems();
   if(!items.length){ mOtran.alert("Agrega al menos un producto.",true); return; }
+  const totalActual=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
+  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
+  if(totalActual+totalPedido>LIMIT){
+    mOtran.alert(`No puedes pedir: tu tienda tiene ${totalActual} y el límite es ${LIMIT}. Pedir ${totalPedido} lo superaría. Vende stock antes de pedir.`,true); return;
+  }
   const codigo=await window.getNextCode(db,fns,"TTT-OTRAN");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"TTT-OTRAN", emisor:ID, destino:"TOTTUS_CD", destinoFinal:ID,
@@ -286,12 +291,13 @@ window.crearRECEP=async function(){
   if(!val.ok){ mRecep.alert(val.error,true); return; }
   const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;
-  if(total+added>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Recepción de ${added} uds supera ${LIMIT}`,codigoOrden:codigo,timestamp:serverTimestamp()});
-    mRecep.alert(`⚠ Supera el límite (${LIMIT}). Penalización registrada.`,true); return;
-  }
+  const excede=(total+added>LIMIT);
   const ns={...stock}; for(const it of items) ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
+  if(excede){
+    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock sobrepasado",detalle:`Recibió ${added} uds y superó el límite de ${LIMIT}. Pidió de más sin fijarse.`,codigoOrden:codigo,timestamp:serverTimestamp()});
+    window.showToast("⚠️","Stock sobrepasado",`Superaste el límite de ${LIMIT} — penalización aplicada`);
+  }
   const codRecep=await window.getNextCode(db,fns,"TTT-RECEP");
   await addDoc(collection(db,"albaranes"),{
     codigo:codRecep, prefix:"TTT-RECEP", emisor:ID, destinatario:ID, origen:"TOTTUS_CD",

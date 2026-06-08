@@ -89,7 +89,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mDesp.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearDESP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('cetlog.html-crearDESP',window.crearDESP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -112,7 +112,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mRecep.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearRECEP()">Registrar →</button>
+      <button class="btn-m primary" onclick="window.once('cetlog.html-crearRECEP',window.crearRECEP,this)">Registrar →</button>
     </div>
   </div>
 </div>
@@ -285,12 +285,15 @@ window.crearRECEP=async function(){
   // validar stock + límite
   const total=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
   let added=0; for(const it of items) added+=it.cantidad;
-  if(total+added>LIMIT){
-    await addDoc(collection(db,"penalizaciones"),{empresa:ID,motivo:"Stock límite excedido",detalle:`Llegada de ${added} uds supera ${LIMIT}`,timestamp:serverTimestamp()});
-    mRecep.alert(`⚠ Supera el límite (${LIMIT}). Penalización registrada.`,true); return;
-  }
+  // Se PERMITE recibir aunque supere el límite. La penalización por pedir de más
+  // es de UNILEVER PERÚ (quien decide las compras), NO de CETLOG.
+  const excede=(total+added>LIMIT);
   const ns={...stock}; for(const it of items) ns[it.producto]=(ns[it.producto]||0)+it.cantidad;
   await setDoc(doc(db,"stocks",ID),ns);
+  if(excede){
+    await addDoc(collection(db,"penalizaciones"),{empresa:"UNILEVER_PERU",motivo:"Stock sobrepasado",detalle:`CETLOG recibió ${added} uds y superó su límite de ${LIMIT}. Unilever Perú compró de más.`,codigoOrden:ref||null,timestamp:serverTimestamp()});
+    window.showToast("⚠️","Stock sobrepasado",`CETLOG superó su límite — se penaliza a Unilever Perú`);
+  }
   // Deducir parcial/completa contra la UP-OCOM referida (si existe)
   let tipo="completa";
   if(ref){

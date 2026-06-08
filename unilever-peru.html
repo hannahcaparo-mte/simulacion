@@ -25,6 +25,7 @@
       </div>
     </div>
     <div class="stock-header">
+      <div class="pen-count-badge" id="penCount"><span class="penc-label">Penaliz.</span><span class="penc-val">0</span></div>
       <div class="stock-pills-h" id="stockPills"></div>
       <div class="stock-cap" id="stockCap"></div>
     </div>
@@ -96,7 +97,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOped.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOPED()">Pedir a CETLOG →</button>
+      <button class="btn-m primary" onclick="window.once('unilever-peru.html-crearOPED',window.crearOPED,this)">Pedir a CETLOG →</button>
     </div>
   </div>
 </div>
@@ -117,7 +118,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-m" onclick="window.__supply_mOcom.close()">Cancelar</button>
-      <button class="btn-m primary" onclick="window.crearOCOM()">Comprar a la fábrica →</button>
+      <button class="btn-m primary" onclick="window.once('unilever-peru.html-crearOCOM',window.crearOCOM,this)">Comprar a la fábrica →</button>
     </div>
   </div>
 </div>
@@ -181,12 +182,20 @@ onSnapshot(query(collection(db,"movimientos"),where("empresa","==","CETLOG"),ord
   renderMov();
 });
 
-// UP no maneja penalizaciones (solo coordina pedidos)
-
-// UP solo coordina: no corre watcher de expiración (no despacha físicamente).
-// La lentitud del abastecimiento se penaliza aguas abajo (UP-OPED a CETLOG,
-// UP-OCOM cumplida por UM-OVEN). Las OC entrantes muestran "atrasado" vía
-// computeOrderState (deadline), sin penalización aquí.
+// UP SÍ se penaliza: es responsable de que la cadena (UP→CETLOG→cliente) se cumpla
+// en 3 min desde que llegó la orden de compra. Si el cliente final no recibió todo
+// al vencer el deadline, se penaliza a UP.
+window.startChainWatcher(db, fns, ()=>ocsEntrantes, "UNILEVER_PERU", (o)=>{
+  // cumplida si el cliente recibió todos los items (albaranes de entrada del receptor)
+  const albs = todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada");
+  const acc={}; for(const a of albs) for(const it of (a.items||[])) acc[it.producto]=(acc[it.producto]||0)+it.cantidad;
+  return (o.items||[]).every(it=>(acc[it.producto]||0)>=it.cantidad);
+});
+// Conteo de penalizaciones de UP (badge)
+onSnapshot(query(collection(db,"penalizaciones"),where("empresa","==","UNILEVER_PERU"),orderBy("timestamp","desc")),s=>{
+  const r=[]; s.forEach(d=>r.push({id:d.id,...d.data()}));
+  window.renderPenCount(r.length);
+});
 
 function renderOCs(){
   window.renderSummary("sumContent",[
@@ -196,8 +205,15 @@ function renderOCs(){
   ]);
   const c=document.getElementById("ocContainer");
   if(!ocsEntrantes.length){ c.innerHTML='<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin solicitudes recibidas.</p>'; return; }
-  c.innerHTML=window.__sortOrders(ocsEntrantes).map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,
-    albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")})).join("");
+  c.innerHTML=window.__sortOrders(ocsEntrantes).map(o=>{
+    // Defensa: una orden de COMPRA entrante se cumple cuando el cliente RECIBE.
+    // Si por datos viejos quedó en un estado de "enviado", lo normalizamos a recibido.
+    const ord = {...o};
+    if(ord.estado==="enviado") ord.estado="recibido";
+    if(ord.estado==="enviado_tarde") ord.estado="recibido_tarde";
+    return window.renderOrderCard(ord,{showTimer:["pendiente","parcial"].includes(ord.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",
+      albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")});
+  }).join("");
 }
 
 function renderOCsPanel(){
@@ -256,13 +272,16 @@ window.crearOPED=async function(){
     if((cetlogStock[it.producto]||0)<it.cantidad){ mOped.alert(`CETLOG no tiene suficiente ${window.shortProd(it.producto)} (hay ${cetlogStock[it.producto]||0}). Crea una OCOM a MEX desde la pestaña correspondiente.`,true); return; }
   }
   const codigo=await window.getNextCode(db,fns,"UP-OPED");
+  // El timer arranca cuando Yichang/Tottus CD crearon su orden de compra (no ahora).
+  const ocRef = ref ? ocsEntrantes.find(o=>o.codigo===ref) : null;
+  const deadline = (ocRef && ocRef.deadlineMs) ? ocRef.deadlineMs : window.effectiveNow()+window.TIMER_MS;
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"UP-OPED",
     emisor:ID, destino:"CETLOG", destinoFinal:dest,
     cliente:window.AGENT_LABEL[dest], tipo:"pedido",
     items, estado:"pendiente", responsable:"CETLOG", // CETLOG debe despachar
     referencia:ref||null,
-    timestamp:serverTimestamp(), deadlineMs: window.effectiveNow()+window.TIMER_MS
+    timestamp:serverTimestamp(), deadlineMs: deadline
   });
   // Notificar a CETLOG
   await addDoc(collection(db,"notificaciones"),{
@@ -277,6 +296,12 @@ window.crearOPED=async function(){
 window.crearOCOM=async function(){
   const items=mOcom.getItems();
   if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
+  // El stock llega a CETLOG. No comprar si superaría el límite de CETLOG.
+  const totalActual=window.PRODS.reduce((a,p)=>a+(cetlogStock[p]||0),0);
+  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
+  if(totalActual+totalPedido>CETLOG_LIMIT){
+    mOcom.alert(`No puedes comprar: CETLOG tiene ${totalActual} y su límite es ${CETLOG_LIMIT}. Pedir ${totalPedido} lo superaría. Espera a que CETLOG despache antes de comprar más.`,true); return;
+  }
   const codigo=await window.getNextCode(db,fns,"UP-OCOM");
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"UP-OCOM",
