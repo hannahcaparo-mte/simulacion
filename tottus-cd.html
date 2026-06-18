@@ -9,6 +9,21 @@
   <style>
     :root { --c-accent:#0F6E56; --c-bg:#E1F5EE; --c-border:#5DCAA5;
       --c-badge-bg:#A6E2CC; --c-badge-text:#0A4D3C; --c-name:#0A4D3C; }
+  
+    /* Flujo visual de la guía (inline para no depender del CSS externo) */
+    .guide-flow { margin-bottom: 18px; }
+    .guide-flow:last-of-type { margin-bottom: 14px; }
+    .gf-title { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--c-accent); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+    .gf-title .gf-badge { background: var(--c-accent); color: #fff; width: 19px; height: 19px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+    .gf-track { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+    .gf-step { flex: 1; text-align: center; background: #fafaf8; border: 1px solid #e8e7e1; border-radius: 8px; padding: 8px 6px; font-size: 11px; line-height: 1.3; color: #4a4a45; display: flex; align-items: center; justify-content: center; }
+    .gf-step b { color: #1a1a18; }
+    .gf-step.gf-btn { background: var(--c-bg); border-color: var(--c-border); color: var(--c-badge-text); font-weight: 500; }
+    .gf-step.gf-btn b { color: var(--c-badge-text); }
+    .gf-arrow { display: flex; align-items: center; justify-content: center; color: var(--c-accent); font-size: 15px; flex-shrink: 0; padding: 0 1px; }
+    .gf-warn { margin-top: 12px; background: #FBE9E9; border: 1px solid #F1B9B9; border-left: 4px solid #C0392B; border-radius: 8px; padding: 10px 13px; font-size: 12px; line-height: 1.5; color: #8A2017; }
+    .gf-warn b { color: #6E140C; }
+    .gf-warn .gf-warn-ic { font-weight: 700; margin-right: 4px; }
   </style>
 </head>
 <body>
