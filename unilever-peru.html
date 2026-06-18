@@ -39,16 +39,39 @@
       <span class="guide-toggle-title">ℹ️ ¿CUÁL ES MI ROL? <span style="font-weight:400;color:#888780"></span></span>
     </div>
     <div class="guide-content">
-      <div class="guide-role">Eres el <b>administrador de pedidos</b>. No tienes stock propio: el inventario que ves es el de tu almacén <b>Cetlog</b>, si ves que no hay inventario, pídele a <b> Unilever México</b>. Tu trabajo es atender las solicitudes de <b>Yichang</b> y <b>Tottus cd</b>. </div>
-      <div class="guide-steps"><div class="guide-step"><span class="gs-num">1</span><span><b>ORDEN DE PEDIDO:</b> Cuando llegue una orden de compra de <b>Yichang</b> o <b>Tottus cd</b> (debes copiar el código) y registrarlo presionando <b>"Orden de pedido"</b> para <b>Cetlog </b>(encargado de despachar los pedidos). Puedes visualizar las órdenes recibidas en la pestaña <b>"Órdenes de compra recibidas" </b> y las órdenes de pedido en la pestaña <b>"Órdenes de pedido a Cetlog". </b> </span></div>
-      <div class="guide-step"><span class="gs-num">2</span><span><b>ORDEN DE COMPRA:</b> Cuando veas que en <b>Cetlog</b> no hay suficiente inventario puedes pedirle a Unilever México presionando <b>"Orden de compra"</b>. Puedes visualizar las órdenes enviadas en la pestaña <b>"Órdenes de compra a Unilever Perú". </b></span></div>
-      <div class="guide-step"><span class="gs-num">3</span><span><b>TU TIMER:</b> Cuando llegue una orden de compra, se inicia <b> tu timer (3 minutos)</b>, en este tiempo: 1.Debes mandar la orden de pedido a Cetlog y 2. Cetlog debe despacharlo. Cuando le llegue el pedido a Yichang o Tottus cd, se pausará <b> tu timer</b>.</span></div>
-<div class="guide-step"><span class="gs-num">4</span><span><b>MOVIMIENTOS:</b> Cuando Cetlog haga algún movimiento se te notificará en la pestaña de <b>"Movimientos de Cetlog"</b>, podrás verificar que despache correctamente los pedidos.</span></div>
+      <div class="guide-role">Eres el <b>coordinador de pedidos</b>. No tienes stock propio: el inventario que ves es el de tu almac&eacute;n <b>CETLOG</b>. Atiendes las solicitudes de Yichang y Tottus CD.</div>
 
+      <div class="guide-flow">
+        <div class="gf-title"><span class="gf-badge">1</span> Pedir a CETLOG</div>
+        <div class="gf-track">
+          <div class="gf-step">Llega una <b>solicitud de compra</b> de Yichang o Tottus CD</div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step">Copia el <b>c&oacute;digo</b></div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step gf-btn">Presiona <b>Orden de pedido</b></div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step">Pega el <b>c&oacute;digo</b></div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step">CETLOG lo despachar&aacute;</div>
+        </div>
+      </div>
+
+      <div class="guide-flow">
+        <div class="gf-title"><span class="gf-badge">2</span> Comprar a la f&aacute;brica</div>
+        <div class="gf-track">
+          <div class="gf-step">CETLOG no tiene stock suficiente</div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step gf-btn">Presiona <b>Orden de compra</b></div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step">Pide a Unilever M&eacute;xico</div>
+          <div class="gf-arrow">&rarr;</div>
+          <div class="gf-step">Llega a <b>CETLOG</b></div>
+        </div>
+      </div>
+
+      <div class="gf-warn"><span class="gf-warn-ic">&#9201;</span> <b>OJO con tu timer:</b> empieza apenas Yichang o Tottus CD te env&iacute;an su orden de compra. Tienes <b>3 minutos</b> para que el pedido llegue al cliente. Termina cuando <b>el cliente registra</b> lo recibido.</div>
     </div>
   </div>
-  </div>
-  
 
   <div class="action-bar">
     <button class="btn-action primary" onclick="abrirOPED()">📦 Orden de pedido</button>
@@ -267,14 +290,12 @@ window.crearOPED=async function(){
   const dest=document.getElementById("opDest").value;
   const ref=document.getElementById("opRef").value.trim();
   if(!items.length){ mOped.alert("Agrega al menos un producto.",true); return; }
-  // validar stock CETLOG
-  for(const it of items){
-    if((cetlogStock[it.producto]||0)<it.cantidad){ mOped.alert(`CETLOG no tiene suficiente ${window.shortProd(it.producto)} (hay ${cetlogStock[it.producto]||0}). Crea una OCOM a MEX desde la pestaña correspondiente.`,true); return; }
-  }
+  // Se permite enviar la orden a CETLOG aunque no tenga stock todavía:
+  // CETLOG no podrá despachar hasta que le llegue inventario de Unilever México.
   const codigo=await window.getNextCode(db,fns,"UP-OPED");
-  // El timer arranca cuando Yichang/Tottus CD crearon su orden de compra (no ahora).
-  const ocRef = ref ? ocsEntrantes.find(o=>o.codigo===ref) : null;
-  const deadline = (ocRef && ocRef.deadlineMs) ? ocRef.deadlineMs : window.effectiveNow()+window.TIMER_MS;
+  // El timer de CETLOG arranca AHORA (cuando UP le manda el pedido): 3 min frescos.
+  // Es distinto del timer de UP, que cuenta desde que el cliente hizo su compra.
+  const deadline = window.effectiveNow()+window.TIMER_MS;
   await addDoc(collection(db,"ordenes"),{
     codigo, prefix:"UP-OPED",
     emisor:ID, destino:"CETLOG", destinoFinal:dest,
