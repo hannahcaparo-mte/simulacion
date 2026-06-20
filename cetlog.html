@@ -250,6 +250,11 @@ function renderAlb(){
 
 
 window.marcarRegistrada=async function(id){
+  const n=notifs.find(x=>x.id===id);
+  if(!window.llegadaYaRegistrada(n, albaranesMios)){
+    window.showToast("⚠️","Aún no registras","Primero registra el inventario con \"Registrar\" (panel izquierdo). Luego marca aquí.");
+    return;
+  }
   await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"});
 };
 

@@ -501,6 +501,21 @@ window.renderIncomingPanel = function(opts){
   }).join("");
 };
 
+/* Verifica que una llegada ya tenga su albarán de entrada registrado antes de
+   marcarla como "registrada", para que el inventario no quede en el aire. */
+window.llegadaYaRegistrada = function(notif, albaranesEntrada){
+  if(!notif) return false;
+  const refs = (albaranesEntrada||[]).filter(a => a.tipo==="entrada" && (
+    (notif.codigoOrden && a.codigoOrden===notif.codigoOrden) ||
+    (notif.codigoAlbaran && a.referenciaLlegada===notif.codigoAlbaran)
+  ));
+  if(!refs.length) return false;
+  const acc={}; for(const a of refs) for(const it of (a.items||[])) acc[it.producto]=(acc[it.producto]||0)+it.cantidad;
+  const items = notif.items || [];
+  if(!items.length) return refs.length>0;
+  return items.every(it => (acc[it.producto]||0) >= it.cantidad);
+};
+
 window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
   const c = document.getElementById(containerId); if(!c) return;
   if (!notifs.length) { c.innerHTML = `<p style="font-size:12px;color:#b4b2a9;text-align:center;padding:.5rem 0;">Sin llegadas.</p>`; return; }

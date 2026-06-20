@@ -263,7 +263,14 @@ function renderAlb(){
   }).join("");
 }
 
-window.marcarRegistrada=async function(id){ await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"}); };
+window.marcarRegistrada=async function(id){
+  const n=notifs.find(x=>x.id===id);
+  if(!window.llegadaYaRegistrada(n, albaranes)){
+    window.showToast("⚠️","Aún no registras","Primero registra el inventario con \"Registrar\" (panel izquierdo). Luego marca aquí.");
+    return;
+  }
+  await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"});
+};
 
 window.crearOCLI=async function(){
   const items=mOcli.getItems();
@@ -293,9 +300,8 @@ window.crearOTRAN=async function(){
   const items=mOtran.getItems();
   if(!items.length){ mOtran.alert("Agrega al menos un producto.",true); return; }
   const totalActual=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
-  if(totalActual+totalPedido>LIMIT){
-    mOtran.alert(`No puedes pedir: tu tienda tiene ${totalActual} y el límite es ${LIMIT}. Pedir ${totalPedido} lo superaría. Vende stock antes de pedir.`,true); return;
+  if(totalActual>=LIMIT){
+    mOtran.alert(`No puedes pedir: tu tienda ya está en el límite (${totalActual}/${LIMIT}). Vende stock antes de pedir.`,true); return;
   }
   const codigo=await window.getNextCode(db,fns,"TTT-OTRAN");
   await addDoc(collection(db,"ordenes"),{

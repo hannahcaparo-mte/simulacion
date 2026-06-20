@@ -314,7 +314,14 @@ function renderAlb(){
   }).join("");
 }
 
-window.marcarRegistrada=async function(id){ await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"}); };
+window.marcarRegistrada=async function(id){
+  const n=notifs.find(x=>x.id===id);
+  if(!window.llegadaYaRegistrada(n, albaranes)){
+    window.showToast("⚠️","Aún no registras","Primero registra el inventario con \"Registrar\" (panel izquierdo). Luego marca aquí.");
+    return;
+  }
+  await updateDoc(doc(db,"notificaciones",id),{estado:"registrada"});
+};
 
 window.crearOVEN=async function(){
   const items=mOven.getItems();
@@ -379,9 +386,8 @@ window.crearOCOM=async function(){
   if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
   // No permitir comprar si el stock total superaría el límite del almacén
   const totalActual=window.PRODS.reduce((a,p)=>a+(stock[p]||0),0);
-  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
-  if(totalActual+totalPedido>LIMIT){
-    mOcom.alert(`No puedes comprar: tu almacén tiene ${totalActual} y el límite es ${LIMIT}. Pedir ${totalPedido} lo superaría. Vende stock antes de comprar.`,true); return;
+  if(totalActual>=LIMIT){
+    mOcom.alert(`No puedes comprar: tu almacén ya está en el límite (${totalActual}/${LIMIT}). Vende stock antes de comprar.`,true); return;
   }
   const codigo=await window.getNextCode(db,fns,"YI-OCOM");
   await addDoc(collection(db,"ordenes"),{

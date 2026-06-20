@@ -335,11 +335,10 @@ window.crearOPED=async function(){
 window.crearOCOM=async function(){
   const items=mOcom.getItems();
   if(!items.length){ mOcom.alert("Agrega al menos un producto.",true); return; }
-  // El stock llega a CETLOG. No comprar si superaría el límite de CETLOG.
+  // El stock llega a CETLOG. Solo se bloquea si CETLOG ya está en su límite.
   const totalActual=window.PRODS.reduce((a,p)=>a+(cetlogStock[p]||0),0);
-  const totalPedido=items.reduce((a,it)=>a+it.cantidad,0);
-  if(totalActual+totalPedido>CETLOG_LIMIT){
-    mOcom.alert(`No puedes comprar: CETLOG tiene ${totalActual} y su límite es ${CETLOG_LIMIT}. Pedir ${totalPedido} lo superaría. Espera a que CETLOG despache antes de comprar más.`,true); return;
+  if(totalActual>=CETLOG_LIMIT){
+    mOcom.alert(`No puedes comprar: CETLOG ya está en su límite (${totalActual}/${CETLOG_LIMIT}). Espera a que CETLOG despache antes de comprar más.`,true); return;
   }
   const codigo=await window.getNextCode(db,fns,"UP-OCOM");
   await addDoc(collection(db,"ordenes"),{
