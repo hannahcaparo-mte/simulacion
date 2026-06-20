@@ -525,7 +525,7 @@ window.renderNotifPanel = function(containerId, notifs, onRegistrar) {
       <div class="notif-title">● Llegó: ${items}</div>
       <div class="notif-detail">${t} · de ${orig}${n.codigoAlbaran?` · ${n.codigoAlbaran}`:""}</div>
       ${refBtn}
-      <div class="notif-detail" style="margin-bottom:6px"><i>Copia el código y pégalo en "Registrar lo recibido".</i></div>
+      <div class="notif-detail" style="margin-bottom:6px"><i>Copia el código y pégalo en en la derecha.</i></div>
       <button class="notif-btn" onclick="${onRegistrar}('${n.id}')">✓ Ya lo registré</button>
     </div>`;
   }).join("");

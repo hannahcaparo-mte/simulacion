@@ -57,9 +57,9 @@
       <div class="guide-role">Eres un <b>mayorista del canal tradicional</b>. Le vendes a <b>Don Tito</b> (bodeguero) y te abasteces compr&aacute;ndole a <b>Unilever Per&uacute;</b>.</div>
 
       <div class="guide-flow">
-        <div class="gf-title"><span class="gf-badge">1</span> Registrar UNA venta</div>
+        <div class="gf-title"><span class="gf-badge">1</span> Registrar UNA venta a don tito</div>
         <div class="gf-track">
-          <div class="gf-step">Te hacen un pedido</div>
+          <div class="gf-step">Don Tito hace un pedido</div>
           <div class="gf-arrow">&rarr;</div>
           <div class="gf-step gf-btn"> <b>ORDEN DE VENTA</b></div>
           <div class="gf-arrow">&rarr;</div>
@@ -70,13 +70,13 @@
       <div class="guide-flow">
         <div class="gf-title"><span class="gf-badge">2</span> Despachar a Don Tito</div>
         <div class="gf-track">
-          <div class="gf-step">Copia el <b>c&oacute;digo</b> de tu orden de venta</div>
+          <div class="gf-step">Copiar el c&oacute;digo de orden de venta</div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step gf-btn">Presiona <b>Despachar</b></div>
+          <div class="gf-step gf-btn"> <b>DESPACHAR</b></div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step">Pega el <b>c&oacute;digo</b></div>
+          <div class="gf-step">Pegar el c&oacute;digo</div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step">Entrega a Don Tito</div>
+          <div class="gf-step">Registra</div>
         </div>
       </div>
 
@@ -85,34 +85,37 @@
         <div class="gf-track">
           <div class="gf-step">Te falta inventario</div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step gf-btn">Presiona <b>Orden de compra a Unilever Per&uacute;</b></div>
+          <div class="gf-step gf-btn"> <b>ORDEN DE COMPRA</b></div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step">Pide el stock que necesites</div>
+          <div class="gf-step">Registra el stock que necesites</div>
         </div>
       </div>
 
       <div class="guide-flow">
-        <div class="gf-title"><span class="gf-badge">4</span> Registrar lo recibido</div>
+        <div class="gf-title"><span class="gf-badge">4</span> Registrar stock</div>
         <div class="gf-track">
-          <div class="gf-step">Llega tu pedido (panel derecho)</div>
+          <div class="gf-step">Llega stock (panel derecho)</div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step">Copia el <b>c&oacute;digo</b></div>
+          <div class="gf-step">Copia el c&oacute;digo</div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step gf-btn">Presiona <b>Registrar</b></div>
+          <div class="gf-step gf-btn"> <b>LLEGADA DE STOCK</b></div>
           <div class="gf-arrow">&rarr;</div>
-          <div class="gf-step">Pega y suma a tu stock</div>
+          <div class="gf-step">Pegar el c&oacute;digo y registrar</div>
+<div class="gf-arrow">&rarr;</div>
+          <div class="gf-step gf-btn"> <b>✓ YA LO REGISTRÉ</b></div>
+
         </div>
       </div>
 
-      <div class="gf-warn"><span class="gf-warn-ic">&#9201;</span> <b>OJO con tu timer:</b> cuando compras a Unilever Per&uacute;, ellos tienen <b>3 minutos</b> para hacerte llegar el pedido. Tu venta a Don Tito tambi&eacute;n corre con <b>3 minutos</b> para despacharla.</div>
+      <div class="gf-warn"><span class="gf-warn-ic">&#9201;</span> <bTU TIMER:</b> EMPIEZA cuando registras la venta a Don Tito. Tienes <b>3 minutos</b> para despacharla. TERMINA cuando entregues a don tito el stock. </div>
     </div>
   </div>
 
   <div class="action-bar">
-    <button class="btn-action primary" onclick="window.__supply_mOven.open()">🛒 Orden de venta</button>
-    <button class="btn-action secondary" onclick="abrirDESP()">📦 Despachar</button>
-    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 Orden de compra a Unilever Perú</button>
-    <button class="btn-action secondary" onclick="abrirRECEP()">📥 Registrar</button>
+    <button class="btn-action primary" onclick="window.__supply_mOven.open()">🛒 ORDEN DE VENTA</button>
+    <button class="btn-action secondary" onclick="abrirDESP()">📦 DESPACHAR</button>
+    <button class="btn-action secondary" onclick="window.__supply_mOcom.open()">🛒 ORDEN DE COMPRA</button>
+    <button class="btn-action secondary" onclick="abrirRECEP()">📥 LLEGADA DE STOCK</button>
   </div>
 
   <div class="tabs-supply">
