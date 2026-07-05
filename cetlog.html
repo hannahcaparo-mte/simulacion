@@ -342,7 +342,8 @@ window.crearRECEP=async function(){
   await setDoc(doc(db,"stocks",ID),ns);
   if(excede){
     await addDoc(collection(db,"penalizaciones"),{empresa:"UNILEVER_PERU",motivo:"Stock sobrepasado",detalle:`CETLOG recibió ${added} uds y superó su límite de ${LIMIT}. Unilever Perú compró de más.`,codigoOrden:ref||null,timestamp:serverTimestamp()});
-    window.showToast("⚠️","Stock sobrepasado",`CETLOG superó su límite — se penaliza a Unilever Perú`);
+    await addDoc(collection(db,"penalizaciones"),{empresa:"CETLOG",motivo:"Stock sobrepasado",detalle:`Registró ${added} uds y superó su límite de ${LIMIT} en vez de rechazar el exceso.`,codigoOrden:ref||null,timestamp:serverTimestamp()});
+    window.showToast("⚠️","Stock sobrepasado",`CETLOG superó su límite — se penaliza a Unilever Perú y a CETLOG`);
   }
   // Deducir parcial/completa contra la UP-OCOM referida (si existe)
   let tipo="completa";
@@ -387,6 +388,9 @@ window.crearRECEP=async function(){
           if(covered){
             const wasOverdue = od.estado==="atrasado" || (od.deadlineMs && Date.now()>od.deadlineMs);
             await updateDoc(doc(db,"ordenes",od.id),{estado: wasOverdue?"recibido_tarde":"recibido"});
+            if(wasOverdue){
+              await addDoc(collection(db,"penalizaciones"),{empresa:"UNILEVER_MEX",motivo:"Entrega tardía",detalle:`${ref}: el pedido de Unilever Perú se registró como recibido tarde.`,codigoOrden:ref,timestamp:serverTimestamp()});
+            }
           }
         }
       }

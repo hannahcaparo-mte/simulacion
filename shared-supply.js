@@ -251,6 +251,7 @@ window.startChainWatcher = function(db, fns, ordenesObservable, miAgente, comple
     const now = window.effectiveNow();
     for (const o of ordenesObservable()) {
       if (o.responsable !== miAgente) continue;
+      if (o.estado === "cancelado") continue;  // orden cancelada → no genera penalización
       if (!o.deadlineMs || now < o.deadlineMs) continue;
       if (o.penalizada) continue;
       if (completedFn(o)) continue;        // ya se cumplió a tiempo → no penaliza
@@ -263,6 +264,7 @@ window.startChainWatcher = function(db, fns, ordenesObservable, miAgente, comple
           const snap = await tx.get(ref);
           if (!snap.exists()) return;
           const d = snap.data();
+          if (d.estado === "cancelado") return; // doble chequeo: pudo cancelarse justo ahora
           if (!d.penalizada) { tx.update(ref, { penalizada: true }); did = true; }
         });
         if (did) {
