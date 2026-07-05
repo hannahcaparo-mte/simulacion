@@ -172,7 +172,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction,query,where,orderBy};
 const ID="UNILEVER_PERU", ACCENT="#3B6D11", CETLOG_LIMIT=184;
 
 let cetlogStock={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
@@ -190,6 +190,7 @@ window.abrirOCOM=()=>mOcom.open();
 // Stock de CETLOG (solo lectura)
 // Reloj global con pausa
 window.subscribeClock(db, fns, ()=>{});
+window.watchCancelaciones(db, fns, ID); // avisa si alguien cancela una orden que me correspondía
 
 onSnapshot(doc(db,"stocks","CETLOG"),s=>{ if(s.exists()){ cetlogStock=s.data(); window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT); }});
 window.renderHeader(cetlogStock,CETLOG_LIMIT,ACCENT);
@@ -269,15 +270,23 @@ window.marcarRegistradaOC=async function(id){
 
 function renderOped(){
   const c=document.getElementById("opedContainer");
-  c.innerHTML=misOped.length?misOped.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"enviado",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="salida")})).join("")
+  c.innerHTML=misOped.length?misOped.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"enviado",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="salida")})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin pedidos a CETLOG.</p>';
 }
 
 function renderOcom(){
   const c=document.getElementById("ocomContainer");
-  c.innerHTML=misOcom.length?misOcom.map(o=>window.renderOrderCard(o,{showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")})).join("")
+  c.innerHTML=misOcom.length?misOcom.map(o=>window.renderOrderCard(o,{showCancel:true,onCancel:"cancelarOrden",showTimer:["pendiente","parcial"].includes(o.estado),accentColor:ACCENT,viewerId:ID,completedKey:"recibido",albaranes:todosAlbaranes.filter(a=>a.codigoOrden===o.codigo && a.tipo==="entrada")})).join("")
     :'<p style="font-size:13px;color:#b4b2a9;text-align:center;padding:1rem;">Sin compras a la fábrica.</p>';
 }
+
+window.cancelarOrden=async function(id,codigo){
+  const razon=prompt(`Cancelar ${codigo}\nRazón:`); if(!razon) return;
+  await updateDoc(doc(db,"ordenes",id),{estado:"cancelado",razonCancelacion:razon});
+  const o=[...misOped,...misOcom].find(x=>x.id===id);
+  if(o) await window.notificarCancelacion(db,fns,o,razon,ID);
+  window.showToast("🚫","Orden cancelada",`${codigo} — se avisó a la contraparte.`);
+};
 
 function renderMov(){
   const c=document.getElementById("movContainer");

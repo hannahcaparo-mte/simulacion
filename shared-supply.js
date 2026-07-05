@@ -673,6 +673,49 @@ window.switchTabSupply = function(name, el) {
   if (target) target.classList.add("active");
 };
 
+/* ═══════════════════════════════════════════════════════════
+   CANCELACIÓN DE ÓRDENES CON AVISO A LA CONTRAPARTE
+   Cuando alguien cancela una orden que emitió, se guarda un registro
+   en la colección "cancelaciones" dirigido a quien le correspondía
+   atenderla, para que le llegue un aviso (toast) en tiempo real.
+═══════════════════════════════════════════════════════════ */
+window.notificarCancelacion = async function(db, fns, orden, razon, miAgente) {
+  const { collection, addDoc, serverTimestamp } = fns;
+  // La contraparte es quien tenía que actuar sobre esta orden: su responsable,
+  // o si no está definido, su destino, o en su defecto el emisor (si yo no soy el emisor).
+  const contraparte = (orden.responsable && orden.responsable !== miAgente) ? orden.responsable
+    : (orden.destino && orden.destino !== miAgente) ? orden.destino
+    : (orden.emisor && orden.emisor !== miAgente) ? orden.emisor
+    : null;
+  if (!contraparte) return;
+  try {
+    await addDoc(collection(db, "cancelaciones"), {
+      destinatario: contraparte, origen: miAgente,
+      codigoOrden: orden.codigo, razon: razon || "Sin razón especificada",
+      items: orden.items || [], timestamp: serverTimestamp()
+    });
+  } catch (e) { console.error("notificarCancelacion", e); }
+};
+
+/* Escucha cancelaciones dirigidas a mi agente y avisa con un toast.
+   Solo avisa de cancelaciones nuevas (posteriores a cargar la página),
+   para no inundar de toasts viejos al abrir la página. */
+window.watchCancelaciones = function(db, fns, miAgente) {
+  const { collection, query, where, orderBy, onSnapshot } = fns;
+  const startMs = Date.now();
+  const q = query(collection(db, "cancelaciones"), where("destinatario", "==", miAgente), orderBy("timestamp", "desc"));
+  onSnapshot(q, snap => {
+    snap.docChanges().forEach(ch => {
+      if (ch.type !== "added") return;
+      const d = ch.doc.data();
+      const t = (d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : startMs;
+      if (t < startMs - 4000) return; // evita reproducir cancelaciones viejas al cargar
+      const origenLbl = window.AGENT_LABEL[d.origen] || d.origen || "";
+      window.showToast("🚫", "Orden cancelada", `${d.codigoOrden || ""}: ${d.razon || ""} (de ${origenLbl})`);
+    });
+  });
+};
+
 /* Validación: ¿puedo entregar estos items contra esta orden? */
 window.validateDelivery = function(orderItems, deliveredItemsList, accumulatedDelivered) {
   const order = {};

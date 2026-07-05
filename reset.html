@@ -27,7 +27,7 @@
 <div class="center">
   <div class="warning-box">
     <div class="warning-title">⚠ Esto borrará todo</div>
-    <div class="warning-text">Se eliminarán todas las órdenes, albaranes, contadores de código, notificaciones, movimientos y penalizaciones.<br/>Los stocks volverán a sus valores iniciales.<br/><br/><strong>Esta acción no se puede deshacer.</strong></div>
+    <div class="warning-text">Se eliminarán todas las órdenes, albaranes, contadores de código, notificaciones, movimientos, penalizaciones y avisos de cancelación.<br/>Los stocks volverán a sus valores iniciales.<br/><br/><strong>Esta acción no se puede deshacer.</strong></div>
   </div>
   <div class="confirm-box">
     <p style="font-size:13px;color:#5f5e5a;margin-bottom:12px;">Stocks que se restaurarán:</p>
@@ -51,6 +51,7 @@
     <div class="progress-item"><div class="dot" id="d-notificaciones"></div><span id="s-notificaciones">Notificaciones...</span></div>
     <div class="progress-item"><div class="dot" id="d-movimientos"></div><span id="s-movimientos">Movimientos...</span></div>
     <div class="progress-item"><div class="dot" id="d-penalizaciones"></div><span id="s-penalizaciones">Penalizaciones...</span></div>
+    <div class="progress-item"><div class="dot" id="d-cancelaciones"></div><span id="s-cancelaciones">Avisos de cancelación...</span></div>
     <div class="progress-item"><div class="dot" id="d-legacy"></div><span id="s-legacy">Colecciones antiguas...</span></div>
     <div class="progress-item"><div class="dot" id="d-stocks"></div><span id="s-stocks">Stocks...</span></div>
   </div>
@@ -97,6 +98,7 @@ window.confirmarReset=async function(){
     await delCol("notificaciones","notificaciones");
     await delCol("movimientos","movimientos");
     await delCol("penalizaciones","penalizaciones");
+    await delCol("cancelaciones","cancelaciones");
     // legacy
     document.getElementById("d-legacy").className="dot active";
     for(const c of ["pedidos","llegadas","despachos"]){ const s=await getDocs(collection(db,c)); const b=writeBatch(db); s.forEach(d=>b.delete(d.ref)); await b.commit(); }

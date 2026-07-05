@@ -169,7 +169,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction,query,where,orderBy};
 const ID="CETLOG", ACCENT="#534AB7", LIMIT=184;
 const INIT={Rojo:24,Azul:8,Rosado:32,Blanco:24,Amarillo:48};
 
@@ -198,6 +198,7 @@ window.cargarRefRecep=function(){
 })();
 // Reloj global con pausa
 window.subscribeClock(db, fns, ()=>{});
+window.watchCancelaciones(db, fns, ID); // avisa si alguien cancela una orden que me correspondía
 
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 

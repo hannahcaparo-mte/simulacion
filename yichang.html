@@ -236,7 +236,7 @@ import { getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,g
 
 const CFG={apiKey:"AIzaSyBPl8fbal3PwpfZuitFVRDGRwuVmhhA6Ww",authDomain:"cadena-de-suministros-1d554.firebaseapp.com",projectId:"cadena-de-suministros-1d554",storageBucket:"cadena-de-suministros-1d554.firebasestorage.app",messagingSenderId:"154153617557",appId:"1:154153617557:web:0a58532b2008c9d09df39c"};
 const app=initializeApp(CFG); const db=getFirestore(app);
-const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction};
+const fns={doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,getDocs,serverTimestamp,runTransaction,query,where,orderBy};
 const ID="YICHANG", ACCENT="#BA7517", LIMIT=120;
 const INIT={Rojo:16,Azul:8,Rosado:16,Blanco:16,Amarillo:40};
 
@@ -256,6 +256,7 @@ window.abrirRECEP=()=>{ mRecep.open({rpCodigo:""}); document.getElementById("rpP
 })();
 // Reloj global con pausa
 window.subscribeClock(db, fns, ()=>{});
+window.watchCancelaciones(db, fns, ID); // avisa si alguien cancela una orden que me correspondía
 
 onSnapshot(doc(db,"stocks",ID),s=>{ if(s.exists()){ stock=s.data(); window.renderHeader(stock,LIMIT,ACCENT); }});
 onSnapshot(query(collection(db,"ordenes"),where("emisor","==",ID),orderBy("timestamp","desc")),s=>{
@@ -452,6 +453,9 @@ window.crearRECEP=async function(){
 window.cancelarOrden=async function(id,codigo){
   const razon=prompt(`Cancelar ${codigo}\nRazón:`); if(!razon) return;
   await updateDoc(doc(db,"ordenes",id),{estado:"cancelado",razonCancelacion:razon});
+  const o=ordenes.find(x=>x.id===id);
+  if(o) await window.notificarCancelacion(db,fns,o,razon,ID);
+  window.showToast("🚫","Orden cancelada",`${codigo} — se avisó a la contraparte.`);
 };
 </script>
 </body>
